@@ -1,6 +1,6 @@
 # Verdulería Digital
 
-#Propósito del Proyecto:
+Propósito del Proyecto:
 
 El propósito central de Verdulería Digital es conectar de manera directa y eficiente a las verdulerías locales con los hogares de la comunidad. Esta solución tecnológica busca dinamizar la economía local, facilitar el acceso a productos frescos y saludables, y reducir la brecha digital de los pequeños comerciantes agrícolas de nuestro país.
 
