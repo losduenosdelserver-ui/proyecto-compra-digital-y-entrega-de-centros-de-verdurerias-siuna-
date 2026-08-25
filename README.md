@@ -1,29 +1,28 @@
-# Categoría Aficionado y Temática Agropecuario.
+# Verdulería Digital
 
-Equipo: Esling Edduar Montenegro Rodríguez (desarrollador principal líder de equipo y comunicador)
+Propósito del Proyecto:
 
-arquitectura de datos: 
+El propósito central de Verdulería Digital es conectar de manera directa y eficiente a las verdulerías locales con los hogares de la comunidad. Esta solución tecnológica busca dinamizar la economía local, facilitar el acceso a productos frescos y saludables, y reducir la brecha digital de los pequeños comerciantes agrícolas de nuestro país.
 
-input( El flujo comienza en el archivo index.html. Cada producto en el catálogo tiene atributos especiales llamados data-id, data-nombre y data-precio)
+Estructura del Código Fuente:
 
-Acción( Cuando el cliente selecciona una verdura y hace clic en el botón)
+El proyecto sigue estrictamente una arquitectura limpia, modular y ligera (sin dependencias complejas de frameworks pesados)
 
-"Agregar al Carrito"( se genera el evento de entrada.)
- 
-Process( El script escucha todos los clics en los botones de agregar)
+verduleria-digital/
+├── index.html         # Estructura semántica principal y catálogo de productos
+├── README.md          # Documentación técnica, propósitos y arquitectura de datos
+├── package.json       # Configuración del entorno de desarrollo con Vite
+├── css/
+│   └── estilos.css    # Hojas de estilo responsivas con diseño Mobile-First
+└── js/
+    └── app.js         # Lógica interactiva de Vanilla JS (Carrito de compras)
 
-Extracción:( Mediante el método getAttribute, el código "lee" la información del producto directamente desde el HTML)
+Arquitectura del Flujo de Datos (IPO - Input-Process-Output)
 
-Estado:(Estos datos se convierten en un objeto JavaScript que se guarda dentro de un (Array) llamado carrito, actualizando el estado de la aplicación en la memoria del navegador sin necesidad de una base de datos externa por ahora)
+La aplicación opera en el lado del cliente utilizando JavaScript puro bajo un flujo controlado de datos en tiempo real
 
-Output(Finalmente, el procesamiento se traduce en cambios visuales inmediatos para el usuario)
+Entrada (Input): El usuario interactúa con la interfaz del catálogo. Al hacer clic en el botón "Agregar" de una tarjeta de producto, el sistema captura los atributos personalizados del HTML5 semántico (data-id, data-nombre, data-precio)
 
-Renderizado( Dinámico La función actualizarInterfaz() toma la lista de productos guardados en el arreglo carrito y, mediante la manipulación del DOM, crea nuevos elementos de lista ( en el HTML.)
+Procesamiento (Process): La aplicación procesa esta información capturada y almacena el producto de manera lógica en una estructura de datos interna tipo arreglo(Array).
 
-Cálculo en Tiempo Real (El script recorre el arreglo, suma los precios y actualiza el elemento #total-monto en pantalla)
-
-Resultado (El cliente ve su carrito actualizado y el monto total sin que la página se refresque, lo que proporciona una experiencia de usuario fluida y profesional)
-
-
-
-
+Salida (Output): La lógica del programa lee el estado del arreglo y actualiza dinámicamente el contenido del Carrito de Compras en el DOM, recalculando el precio total e insertando un botón para eliminar productos específicos, todo ello de manera fluida y sin recargar la página
