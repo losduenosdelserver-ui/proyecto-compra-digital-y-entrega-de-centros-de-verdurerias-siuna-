@@ -1,0 +1,22 @@
+{
+  "name": "verduleria-digital",
+  "version": "1.0.0",
+  "description": "Proyecto 'Verdulería Digital"
+  "main": "js/app.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "vanilla-js",
+    "frontend",
+    "responsive",
+    "hackathon-kronox"
+  ],
+  "author": "Equipo Verdulería Digital",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
