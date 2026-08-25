@@ -14,7 +14,7 @@ Estado:(Estos datos se convierten en un objeto JavaScript que se guarda dentro d
 
 Output(Finalmente, el procesamiento se traduce en cambios visuales inmediatos para el usuario)
 
-Renderizado( Dinámico La función actualizarInterfaz() toma la lista de productos guardados en el arreglo carrito y, mediante la manipulación del DOM, crea nuevos elementos de lista (<li>) en el HTML.)
+Renderizado( Dinámico La función actualizarInterfaz() toma la lista de productos guardados en el arreglo carrito y, mediante la manipulación del DOM, crea nuevos elementos de lista ( en el HTML.)
 
 Cálculo en Tiempo Real (El script recorre el arreglo, suma los precios y actualiza el elemento #total-monto en pantalla)
 
