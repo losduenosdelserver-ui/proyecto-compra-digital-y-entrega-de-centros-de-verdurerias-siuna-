@@ -6,6 +6,10 @@ arquitectura de datos:
 
 input( El flujo comienza en el archivo index.html. Cada producto en el catálogo tiene atributos especiales llamados data-id, data-nombre y data-precio)
 
+Acción( Cuando el cliente selecciona una verdura y hace clic en el botón)
+
+"Agregar al Carrito"( se genera el evento de entrada.)
+ 
 Process( El script escucha todos los clics en los botones de agregar)
 
 Extracción:( Mediante el método getAttribute, el código "lee" la información del producto directamente desde el HTML)
