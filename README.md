@@ -1,21 +1,12 @@
 # Verdulería Digital
 
-Propósito del Proyecto:
+#Propósito del Proyecto:
 
 El propósito central de Verdulería Digital es conectar de manera directa y eficiente a las verdulerías locales con los hogares de la comunidad. Esta solución tecnológica busca dinamizar la economía local, facilitar el acceso a productos frescos y saludables, y reducir la brecha digital de los pequeños comerciantes agrícolas de nuestro país.
 
 Estructura del Código Fuente:
 
 El proyecto sigue estrictamente una arquitectura limpia, modular y ligera (sin dependencias complejas de frameworks pesados)
-
-verduleria-digital/
-├── index.html         # Estructura semántica principal y catálogo de productos
-├── README.md          # Documentación técnica, propósitos y arquitectura de datos
-├── package.json       # Configuración del entorno de desarrollo con Vite
-├── css/
-│   └── estilos.css    # Hojas de estilo responsivas con diseño Mobile-First
-└── js/
-    └── app.js         # Lógica interactiva de Vanilla JS (Carrito de compras)
 
 Arquitectura del Flujo de Datos (IPO - Input-Process-Output)
 
