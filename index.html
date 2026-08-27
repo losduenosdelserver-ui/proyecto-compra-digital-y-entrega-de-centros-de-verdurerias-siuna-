@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es-NI">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VerduNica — Frutas y verduras frescas a la puerta de tu casa | Siuna, Nicaragua</title>
+<meta name="description" content="VerduNica: marketplace de frutas y verduras frescas cosechadas por productores de Siuna, Nicaragua. Pedí en línea y te llevamos el pedido a la puerta de tu casa." />
+<meta name="theme-color" content="#1b4332" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%231b4332'/%3E%3Cpath d='M28 62c0-18 14-32 32-32 0 18-14 32-32 32z' fill='%2352b788'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<a class="skip-link" href="#catalogo">Saltar al catálogo</a>
+
+<!-- ============ HEADER ============ -->
+<header class="site-header">
+  <div class="header-strip">
+    <div class="wrap header-strip__inner">
+      <span class="strip-item">Cosechado en Siuna, RACCN</span>
+      <span class="strip-dot" aria-hidden="true"></span>
+      <span class="strip-item">Entregas de 8:00 a.m. a 5:00 p.m.</span>
+      <span class="strip-dot" aria-hidden="true"></span>
+      <span class="strip-item">Pagás al recibir</span>
+    </div>
+  </div>
+
+  <div class="wrap header-main">
+    <a class="brand" href="#inicio" aria-label="VerduNica, inicio">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <path d="M24 42c-9 0-16-7-16-16 0-9 7-16 16-16s16 7 16 16c0 9-7 16-16 16z" fill="#52b788"/>
+          <path d="M24 40c0-12 6-22 15-27-2 16-6 24-15 27z" fill="#1b4332"/>
+          <path d="M24 40C24 28 18 18 9 13c2 16 6 24 15 27z" fill="#2d6a4f"/>
+          <path d="M24 40V16" stroke="#f4f9f4" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </span>
+      <span class="brand__text">
+        <strong class="brand__name">VerduNica</strong>
+        <span class="brand__tagline">Frutas y verduras frescas a la puerta de tu casa</span>
+      </span>
+    </a>
+
+    <div class="header-actions">
+      <a class="sell-link" href="#vendedores">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16l-1.2 12.2a1 1 0 0 1-1 .8H6.2a1 1 0 0 1-1-.8L4 7z"/><path d="M8.5 7V5.5a3.5 3.5 0 0 1 7 0V7"/></svg>
+        <span>Vendé con nosotros</span>
+      </a>
+      <button class="cart-btn" id="cartToggle" aria-expanded="false" aria-controls="cartPanel">
+        <svg class="cart-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/>
+          <circle cx="10" cy="20" r="1.4"/>
+          <circle cx="18" cy="20" r="1.4"/>
+        </svg>
+        <span class="cart-btn__label">Mi canasta</span>
+        <span class="cart-btn__count" id="cartCount" aria-hidden="true">0</span>
+        <span class="sr-only" id="cartCountSr">Canasta vacía</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="inicio">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap hero__inner">
+      <div class="hero__copy">
+        <p class="eyebrow">Del campo de Siuna a tu cocina</p>
+        <h1 class="hero__title">Lo fresco se pide<br /><em>del día</em>, no de la bodega.</h1>
+        <p class="hero__text">
+          Compramos cada mañana con productores del municipio de Siuna y te lo llevamos
+          el mismo día. Sin intermediarios, sin cadena de frío eterna, sin sorpresas.
+        </p>
+        <div class="hero__cta">
+          <a class="btn btn--primary" href="#catalogo">Ver el catálogo de hoy</a>
+          <a class="btn btn--ghost" href="#como">¿Cómo funciona?</a>
+        </div>
+      </div>
+      <ul class="hero__facts">
+        <li><span>+40</span>familias productoras aliadas</li>
+        <li><span>C$60</span>delivery en todo el casco urbano</li>
+        <li><span>2 h</span>promedio de entrega</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ CATALOGO + CARRITO ============ -->
+  <div class="wrap layout">
+
+    <section class="catalog" id="catalogo" aria-labelledby="catalogoTitulo">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title" id="catalogoTitulo">Cosecha disponible hoy</h2>
+          <p class="section-sub">Precios por libra. Actualizados esta mañana en el mercado de Siuna.</p>
+        </div>
+        <div class="filters" role="group" aria-label="Filtrar productos por categoría">
+          <button class="chip is-active" data-filter="todo" aria-pressed="true">Todo</button>
+          <button class="chip" data-filter="verdura" aria-pressed="false">Verduras</button>
+          <button class="chip" data-filter="fruta" aria-pressed="false">Frutas</button>
+          <button class="chip" data-filter="planta" aria-pressed="false">Plantas</button>
+          <button class="chip" data-filter="raiz" aria-pressed="false">Raíces</button>
+        </div>
+      </div>
+
+      <ul class="grid" id="productGrid"></ul>
+      <p class="grid-empty" id="gridEmpty" hidden>No hay productos en esta categoría hoy.</p>
+    </section>
+
+    <!-- ============ CARRITO ============ -->
+    <aside class="cart" id="cartPanel" aria-labelledby="cartTitulo">
+      <div class="cart__inner">
+        <div class="cart__head">
+          <h2 class="cart__title" id="cartTitulo">Mi canasta</h2>
+          <button class="cart__close" id="cartClose" aria-label="Cerrar canasta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <p class="cart__empty" id="cartEmpty">
+          Todavía no agregás nada. Empezá por el catálogo y armá tu canasta de la semana.
+        </p>
+
+        <ul class="cart__list" id="cartList"></ul>
+
+        <div class="cart__totals" id="cartTotals" hidden>
+          <div class="cart__row"><span>Subtotal productos</span><span id="sumProducts">C$0.00</span></div>
+          <div class="cart__row"><span>Delivery en Siuna</span><span id="sumDelivery">C$0.00</span></div>
+          <div class="cart__row cart__row--total"><span>Total a pagar</span><span id="sumTotal">C$0.00</span></div>
+          <p class="cart__note">Pago en efectivo o transferencia al momento de la entrega.</p>
+          <button class="btn btn--primary btn--block" id="checkoutBtn">Confirmar pedido</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ============ PANEL DE VENDEDORES ============ -->
+  <section class="seller" id="vendedores" aria-labelledby="vendedoresTitulo">
+    <div class="wrap">
+      <div class="seller__head">
+        <p class="eyebrow">Para productores de Siuna</p>
+        <h2 class="section-title" id="vendedoresTitulo">Vendé tu cosecha en VerduNica</h2>
+        <p class="section-sub">Publicá lo que tenés disponible y aparecerá en el catálogo junto al resto. Solo aceptamos frutas, verduras, raíces y plantas del campo — nada de hogar, tecnología ni ropa.</p>
+      </div>
+
+      <div class="seller__grid">
+        <!-- Formulario -->
+        <div class="seller__panel">
+          <h3 class="seller__panel-title" id="sellerFormTitle">Publicar un producto</h3>
+
+          <div class="seller-alert" id="sellerWarning" role="alert" hidden>
+            <span class="seller-alert__icon" aria-hidden="true">⚠️</span>
+            <div>
+              <strong>VerduNica es un marketplace exclusivo de productos frescos del campo (frutas, verduras, raíces y plantas).</strong>
+              <p>No se permiten productos de otras categorías (hogar, limpieza, tecnología, ropa, etc.). Corregí la categoría o el nombre para poder guardar.</p>
+            </div>
+          </div>
+
+          <form class="form seller-form" id="sellerForm" novalidate>
+            <input type="hidden" id="sEditId" value="" />
+
+            <div class="field">
+              <label for="sName">Nombre del producto</label>
+              <input type="text" id="sName" name="s-nombre" placeholder="Ej. Mango de rosa" required />
+              <p class="field__error" data-error-for="sName"></p>
+            </div>
+
+            <div class="seller-form__row">
+              <div class="field">
+                <label for="sCat">Categoría</label>
+                <select id="sCat" name="s-categoria" required>
+                  <option value="">Elegí una</option>
+                  <option value="fruta">Fruta</option>
+                  <option value="verdura">Verdura</option>
+                  <option value="planta">Planta / hierba</option>
+                  <option value="raiz">Raíz</option>
+                </select>
+                <p class="field__error" data-error-for="sCat"></p>
+              </div>
+
+              <div class="field">
+                <label for="sPrice">Precio por libra/unidad (C$)</label>
+                <input type="number" id="sPrice" name="s-precio" min="1" step="1" inputmode="numeric" placeholder="25" required />
+                <p class="field__error" data-error-for="sPrice"></p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="sImgUrl">Imagen (URL)</label>
+              <input type="url" id="sImgUrl" name="s-img" placeholder="https://… (opcional si subís una foto)" />
+              <p class="field__error" data-error-for="sImgUrl"></p>
+            </div>
+
+            <div class="field">
+              <label for="sImgFile">…o subí una foto desde tu teléfono</label>
+              <input type="file" id="sImgFile" name="s-foto" accept="image/*" />
+              <div class="seller-form__preview" id="sImgPreview" hidden>
+                <img id="sImgPreviewImg" alt="Vista previa del producto" />
+                <button type="button" class="seller-form__preview-clear" id="sImgClear">Quitar foto</button>
+              </div>
+            </div>
+
+            <div class="field seller-form__delivery">
+              <label for="sDelivery">Costo de tu delivery propio (C$)</label>
+              <input type="number" id="sDelivery" name="s-delivery" min="0" step="1" inputmode="numeric" placeholder="Ej. 40" />
+              <label class="seller-check">
+                <input type="checkbox" id="sNoDelivery" />
+                <span>No ofrezco delivery propio (lo coordina VerduNica)</span>
+              </label>
+              <p class="field__error" data-error-for="sDelivery"></p>
+            </div>
+
+            <div class="field">
+              <label for="sLocation">Ubicación de tu establecimiento</label>
+              <input type="text" id="sLocation" name="s-ubicacion" placeholder="Ej. Tramo 12, Mercado municipal, Siuna" required />
+              <p class="field__error" data-error-for="sLocation"></p>
+            </div>
+
+            <div class="field">
+              <label for="sPhone">Teléfono de contacto</label>
+              <input type="tel" id="sPhone" name="s-telefono" inputmode="tel" placeholder="8888 8888" required />
+              <p class="field__error" data-error-for="sPhone"></p>
+            </div>
+
+            <div class="seller-form__actions">
+              <button class="btn btn--primary btn--block" type="submit" id="sellerSubmit">Publicar producto</button>
+              <button class="btn btn--ghost btn--block" type="button" id="sellerCancel" hidden>Cancelar edición</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Lista de productos del vendedor -->
+        <div class="seller__panel">
+          <h3 class="seller__panel-title">
+            Mis productos publicados
+            <span class="seller__count" id="sellerCount">0</span>
+          </h3>
+          <p class="seller__empty" id="sellerEmpty">Todavía no publicás nada. Llená el formulario y tu producto aparecerá aquí y en el catálogo de arriba.</p>
+          <ul class="seller-list" id="sellerList"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMO FUNCIONA ============ -->
+  <section class="how" id="como" aria-labelledby="comoTitulo">
+    <div class="wrap">
+      <h2 class="section-title section-title--center" id="comoTitulo">Así llega tu pedido</h2>
+      <ol class="how__steps">
+        <li>
+          <h3>Armás tu canasta</h3>
+          <p>Elegís por libra lo que necesitás. El total se calcula solo, sin cargos escondidos.</p>
+        </li>
+        <li>
+          <h3>Nos decís dónde vivís</h3>
+          <p>Tu zona de Siuna y un teléfono. Te escribimos por WhatsApp para confirmar.</p>
+        </li>
+        <li>
+          <h3>Compramos fresco</h3>
+          <p>Escogemos producto por producto con los productores de la zona esa misma mañana.</p>
+        </li>
+        <li>
+          <h3>Llega y pagás</h3>
+          <p>Revisás tu pedido en la puerta. Si algo no te gusta, no lo pagás.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ CONFIANZA ============ -->
+  <section class="trust">
+    <div class="wrap trust__inner">
+      <blockquote class="trust__quote">
+        <p>“Antes salía a las 5 de la mañana al mercado. Ahora me llega el chunche de verduras a la casa y sale igual de fresco.”</p>
+        <footer>— Doña Marlene, barrio Sol de Libertad</footer>
+      </blockquote>
+      <div class="trust__box">
+        <h3>Pedidos también por WhatsApp</h3>
+        <p>Si preferís hablar con alguien, escribinos y armamos tu canasta juntos.</p>
+        <a class="btn btn--light" href="https://wa.me/50588888888" target="_blank" rel="noopener noreferrer">Escribir al 8888 8888</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="site-footer">
+  <div class="wrap footer__inner">
+    <div class="footer__brand">
+      <strong>VerduNica</strong>
+      <p>Frutas y verduras frescas a la puerta de tu casa.<br />Siuna, Región Autónoma de la Costa Caribe Norte, Nicaragua.</p>
+    </div>
+
+    <div class="footer__col">
+      <h3>Contacto</h3>
+      <ul>
+        <li><a href="tel:+50588888888">+505 8888 8888</a></li>
+        <li><a href="mailto:hola@verdunic.com">hola@verdunic.com</a></li>
+        <li>Mercado municipal, Siuna</li>
+        <li>Lunes a sábado, 7 a.m. – 6 p.m.</li>
+      </ul>
+    </div>
+
+    <div class="footer__col">
+      <h3>Seguinos</h3>
+      <ul class="footer__social">
+        <li>
+          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-7.3h2.5l.4-2.9h-2.9V8.9c0-.8.2-1.4 1.4-1.4h1.5V4.9c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.8v2.2H8v2.9h2.5V21h3z"/></svg>
+            Facebook
+          </a>
+        </li>
+        <li>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="5"/><circle cx="12" cy="12" r="3.4"/><circle cx="16.8" cy="7.2" r="1" fill="currentColor" stroke="none"/></svg>
+            Instagram
+          </a>
+        </li>
+        <li>
+          <a href="https://wa.me/50588888888" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3zm4.6 12.3c-.2.6-1.1 1.1-1.8 1.2-.5 0-1.1 0-3.2-1s-3.2-3.3-3.3-3.5c-.2-.2-.8-1.2-.8-2.3 0-1 .6-1.6.8-1.8.2-.2.4-.3.6-.3h.5c.2 0 .4 0 .5.4l.7 1.6c0 .2 0 .3-.1.5l-.4.5c-.1.2-.2.3 0 .5.6 1 1.5 1.8 2.5 2.2.2.1.4.1.5 0l.6-.6c.2-.2.3-.1.5 0l1.5.8c.2.1.3.2.3.4s0 .8-.2 1.3z"/></svg>
+            WhatsApp
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="wrap footer__legal">
+    <span>© <span id="year">2026</span> VerduNic.com — Hecho en Siuna con productores de Siuna.</span>
+    <span>Precios en córdobas (C$) sujetos a la cosecha del día.</span>
+  </div>
+</footer>
+
+<!-- ============ MODAL: DATOS DE ENTREGA ============ -->
+<div class="modal" id="checkoutModal" role="dialog" aria-modal="true" aria-labelledby="checkoutTitulo" hidden>
+  <div class="modal__backdrop" data-close-modal></div>
+  <div class="modal__card" role="document">
+    <button class="modal__close" data-close-modal aria-label="Cerrar formulario">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+
+    <div id="checkoutStep">
+      <p class="eyebrow">Último paso</p>
+      <h2 class="modal__title" id="checkoutTitulo">¿A dónde llevamos tu pedido?</h2>
+      <p class="modal__sub">Te llamamos antes de salir para confirmar que estés en casa.</p>
+
+      <form class="form" id="deliveryForm" novalidate>
+        <div class="field">
+          <label for="fName">Nombre completo</label>
+          <input type="text" id="fName" name="nombre" autocomplete="name" placeholder="Ej. María Gutiérrez" required />
+          <p class="field__error" data-error-for="fName"></p>
+        </div>
+
+        <div class="field">
+          <label for="fPhone">Teléfono / WhatsApp</label>
+          <input type="tel" id="fPhone" name="telefono" inputmode="tel" autocomplete="tel" placeholder="8888 8888" required />
+          <p class="field__error" data-error-for="fPhone"></p>
+        </div>
+
+        <div class="field">
+          <label for="fZone">Zona de Siuna</label>
+          <select id="fZone" name="zona" required>
+            <option value="">Elegí tu zona</option>
+            <option>Centro / Mercado municipal</option>
+            <option>Barrio Sol de Libertad</option>
+            <option>Barrio Pedro Joaquín Chamorro</option>
+            <option>Barrio Luis Delgadillo</option>
+            <option>Barrio Ronald Ortiz</option>
+            <option>Barrio Sandino</option>
+            <option>Barrio Miguel Bikoff</option>
+            <option>Salida a Rosita</option>
+            <option>Salida a Bonanza</option>
+            <option>Comunidad cercana (coordinamos)</option>
+          </select>
+          <p class="field__error" data-error-for="fZone"></p>
+        </div>
+
+        <div class="field">
+          <label for="fAddress">Dirección exacta</label>
+          <textarea id="fAddress" name="direccion" rows="3" placeholder="Casa, color de portón, puntos de referencia…" required></textarea>
+          <p class="field__error" data-error-for="fAddress"></p>
+        </div>
+
+        <div class="form__summary">
+          <div class="cart__row"><span>Productos</span><span id="mProducts">C$0.00</span></div>
+          <div class="cart__row"><span>Delivery</span><span id="mDelivery">C$0.00</span></div>
+          <div class="cart__row cart__row--total"><span>Total</span><span id="mTotal">C$0.00</span></div>
+        </div>
+
+        <button class="btn btn--primary btn--block" type="submit">Enviar pedido</button>
+        <p class="form__legal">Al enviar, un miembro del equipo te escribe por WhatsApp para confirmar la hora de entrega.</p>
+      </form>
+    </div>
+
+    <div class="success" id="successStep" hidden>
+      <span class="success__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+      </span>
+      <h2 class="modal__title">¡Pedido recibido!</h2>
+      <p class="modal__sub" id="successText">Gracias por tu compra.</p>
+      <button class="btn btn--primary btn--block" data-close-modal>Seguir comprando</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
