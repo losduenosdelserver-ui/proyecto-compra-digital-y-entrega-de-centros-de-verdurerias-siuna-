@@ -225,6 +225,10 @@ h2 {
   border-left: 4px solid #b3261e;
 }
 
+.error-log:empty {
+  display: none;
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
