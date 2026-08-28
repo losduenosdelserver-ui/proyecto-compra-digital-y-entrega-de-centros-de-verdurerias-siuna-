@@ -1,19 +1,25 @@
-# Verdulería Digital
+# VerduNica Siuna 🥑
 
-Propósito del Proyecto:
+### Del campo de Siuna a tu mesa, sin comisiones ni intermediarios
 
-El propósito central de Verdulería Digital es conectar de manera directa y eficiente a las verdulerías locales con los hogares de la comunidad. Esta solución tecnológica busca dinamizar la economía local, facilitar el acceso a productos frescos y saludables, y reducir la brecha digital de los pequeños comerciantes agrícolas de nuestro país.
+VerduNica es un marketplace y agenda digital web, de diseño mobile-first, enfocado en el comercio justo de productos agrícolas frescos en Siuna, Nicaragua. El sistema permite a los clientes realizar proformas y agendar pedidos de forma rápida, mientras que ofrece a los pequeños agricultores y vendedores del mercado (como Don Eddy Zeledón) una agenda digital simplificada para gestionar sus ventas del día sin interrumpir su trabajo físico en el tramo.
 
-Estructura del Código Fuente:
+## 🚀 Tecnologías Utilizadas
+Para garantizar un rendimiento óptimo en dispositivos móviles de gama baja y asegurar que la aplicación funcione con un consumo mínimo de datos de internet, el proyecto se ha construido con tecnología web pura:
+*   **HTML5:** Estructuración semántica de la aplicación y formularios de captura de datos.
+*   **CSS3:** Estilos responsivos bajo un enfoque de diseño Mobile-First y variables CSS para el control de la identidad visual.
+*   **JavaScript (Vanilla JS):** Lógica del negocio en el cliente, validación estricta de invariantes de dominio y sincronización en tiempo real.
 
-El proyecto sigue estrictamente una arquitectura limpia, modular y ligera (sin dependencias complejas de frameworks pesados)
+## 🗃️ Arquitectura de Datos: Patrón Pizarra (Blackboard Pattern)
+El sistema implementa el **Patrón Arquitectónico de Pizarra (Blackboard)**, un esquema estructurado de organización donde múltiples componentes (el Catálogo del Cliente y el Panel del Vendedor) cooperan y leen/escriben de manera exclusiva sobre un espacio de datos compartidos unificado. En este proyecto, la "Pizarra" está representada por el almacenamiento persistente del navegador (`LocalStorage`), garantizando consistencia local inmediata en el estado de la aplicación sin recargas de página.
 
-Arquitectura del Flujo de Datos (IPO - Input-Process-Output)
+## 🔧 Instalación y Ejecución Local
+Al ser un desarrollo monolítico nativo de tres archivos, el sistema no requiere servidores de aplicación ni compiladores complejos:
 
-La aplicación opera en el lado del cliente utilizando JavaScript puro bajo un flujo controlado de datos en tiempo real
-
-Entrada (Input): El usuario interactúa con la interfaz del catálogo. Al hacer clic en el botón "Agregar" de una tarjeta de producto, el sistema captura los atributos personalizados del HTML5 semántico (data-id, data-nombre, data-precio)
-
-Procesamiento (Process): La aplicación procesa esta información capturada y almacena el producto de manera lógica en una estructura de datos interna tipo arreglo(Array).
-
-Salida (Output): La lógica del programa lee el estado del arreglo y actualiza dinámicamente el contenido del Carrito de Compras en el DOM, recalculando el precio total e insertando un botón para eliminar productos específicos, todo ello de manera fluida y sin recargar la página
+1.  **Clonar el repositorio:**
+    ```bash
+    git clone https://github.com/tu-usuario/verdunica.git
+    cd verdunica
+    ```
+2.  **Ejecutar la aplicación:**
+    Al no requerir backend, simplemente abre el archivo `index.html` en cualquier navegador web moderno (Chrome, Edge o Firefox) haciendo doble clic sobre el archivo o utilizando un servidor web ligero de desarrollo local (como Live Server en VS Code).
