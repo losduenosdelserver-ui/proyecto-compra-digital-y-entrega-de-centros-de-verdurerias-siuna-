@@ -419,3 +419,47 @@ h2 {
   opacity: 0.7;
   font-weight: 400;
 }
+
+.mandadero-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.mandadero-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--blanco);
+  border: 1px solid rgba(82, 183, 136, 0.35);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+}
+
+.mandadero-nombre {
+  font-weight: 600;
+  color: var(--verde-bosque);
+}
+
+.danger-zone {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(179, 38, 30, 0.3);
+}
+
+.btn-danger {
+  background-color: transparent;
+  color: #b3261e;
+  border: 1px solid #b3261e;
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-danger:hover {
+  background-color: #b3261e;
+  color: var(--blanco);
+}

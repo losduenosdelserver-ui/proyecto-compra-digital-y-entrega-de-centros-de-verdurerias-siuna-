@@ -511,6 +511,95 @@ function registrarCuenta() {
 }
 
 /* =========================================================================
+ * renderMandaderos()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : re-render la lista de mandaderos registrados con su botón
+ *             de eliminar. Solo se llama en sesión de vendedor (admin).
+ * ========================================================================= */
+function renderMandaderos() {
+  const cont = document.getElementById('mandadero-list');
+  if (!cont) {
+    return;
+  }
+  cont.innerHTML = '';
+  const mandaderos = getMandaderosDeBlackboard();
+
+  if (mandaderos.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'No hay mandaderos registrados.';
+    cont.appendChild(note);
+    return;
+  }
+
+  mandaderos.forEach(function (m) {
+    const item = document.createElement('div');
+    item.className = 'mandadero-item';
+
+    const nombre = document.createElement('span');
+    nombre.className = 'mandadero-nombre';
+    nombre.textContent = m.nombre || 'Sin nombre';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-delete';
+    btn.textContent = 'Eliminar';
+    btn.addEventListener('click', function () {
+      eliminarMandadero(m.id);
+    });
+
+    item.appendChild(nombre);
+    item.appendChild(btn);
+    cont.appendChild(item);
+  });
+}
+
+/* =========================================================================
+ * eliminarMandadero(id)
+ * -------------------------------------------------------------------------
+ * Entrada   : id (String) del mandadero a eliminar.
+ * Salida    : void.
+ * Efecto    : pide confirmación y, si se acepta, elimina el mandadero de
+ *             verduNica_mandaderos y refresca la lista.
+ * ========================================================================= */
+function eliminarMandadero(id) {
+  if (!confirm('¿Estás seguro/a de eliminar este mandadero?')) {
+    return;
+  }
+  const mandaderos = getMandaderosDeBlackboard();
+  const restantes = mandaderos.filter(function (m) {
+    return m.id !== id;
+  });
+  setMandaderosOnBlackboard(restantes);
+  renderMandaderos();
+}
+
+/* =========================================================================
+ * eliminarCuentaVendedor()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : pide confirmación; si se acepta, elimina la tienda del vendedor
+ *             en sesión de verduNica_tiendas y cierra la sesión.
+ * ========================================================================= */
+function eliminarCuentaVendedor() {
+  if (!esAdmin() || !sesionActual.tiendaId) {
+    return;
+  }
+  if (!confirm('¿Estás seguro/a de eliminar tu usuario y tu tienda?')) {
+    return;
+  }
+  const tiendas = getTiendasDeBlackboard();
+  const restantes = tiendas.filter(function (t) {
+    return t.id !== sesionActual.tiendaId;
+  });
+  setTiendasOnBlackboard(restantes);
+  cerrarSesion();
+}
+
+/* =========================================================================
  * renderTiendas(lista)
  * -------------------------------------------------------------------------
  * Entrada   : lista (Array) de tiendas filtradas por la búsqueda.
@@ -736,6 +825,7 @@ function actualizarVistas() {
     const tAdmin = tiendaActivaAdmin();
     productosVista = tAdmin ? tAdmin.productos : [];
     renderSellerTable(productosVista);
+    renderMandaderos();
     tiendaVistaId = null;
   } else if (tiendaVistaId) {
     const t = buscarTiendaPorId(tiendaVistaId);
@@ -905,6 +995,12 @@ if (inputRegClave) {
       registrarCuenta();
     }
   });
+}
+
+/* Eliminar cuenta del vendedor en sesión. */
+const btnEliminarCuenta = document.getElementById('btn-eliminar-cuenta');
+if (btnEliminarCuenta) {
+  btnEliminarCuenta.addEventListener('click', eliminarCuentaVendedor);
 }
 
 /* Buscador de tiendas (pantalla inicial del cliente). */
