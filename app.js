@@ -11,6 +11,7 @@
 const STORAGE_KEY = 'verduNica_tiendas';
 const STORAGE_KEY_MANDADEROS = 'verduNica_mandaderos';
 const STORAGE_KEY_PEDIDOS = 'verduNica_pedidos';
+const STORAGE_KEY_CONTADORES = 'verduNica_contadores';
 const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba', 'raiz/tuberculo'];
 
 /* Estados posibles de un pedido. */
@@ -19,6 +20,9 @@ const ESTADOS_PEDIDO = {
   EN_CAMINO: 'en_camino',
   ENTREGADO: 'entregado'
 };
+
+/* Tarifa que cobra el mandadero por entrega (Córdobas). */
+const TARIFA_POR_ENTREGA = 40;
 
 /* Roles de acceso: cliente (usuario), auditor (jurado), admin (vendedor).
  * La seguridad se limita a rutas de acceso locales, sin OAuth ni MFA. */
@@ -279,6 +283,97 @@ function buscarMandaderoPorId(id) {
   return getMandaderosDeBlackboard().find(function (m) {
     return String(m.id) === String(id);
   }) || null;
+}
+
+/* =========================================================================
+ * obtenerSemanaReparto()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Number con el instante (ms) del domingo 12:00 más reciente.
+ * Efecto    : la "semana de reparto" va de domingo 12:00 a domingo 12:00.
+ *             Todo lo que se cuente dentro de ese tramo pertenece a la semana.
+ * ========================================================================= */
+function obtenerSemanaReparto() {
+  const ahora = new Date();
+  /* getDay(): 0 = domingo, 1 = lunes ... 6 = sábado. */
+  const diasAtras = ahora.getDay();
+  const domingo = new Date(
+    ahora.getFullYear(),
+    ahora.getMonth(),
+    ahora.getDate() - diasAtras,
+    12, 0, 0, 0
+  );
+  if (domingo.getTime() > ahora.getTime()) {
+    /* Hoy es domingo antes del mediodía: la semana anterior terminó hace 7 días. */
+    domingo.setDate(domingo.getDate() - 7);
+  }
+  return domingo.getTime();
+}
+
+/* =========================================================================
+ * getContadores()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Object con la forma { semana: Number, mandaderos: {} }.
+ * Efecto    : lectura + inicialización. Si la semana guardada ya no es la
+ *             vigente, reinicia los contadores (corte del domingo 12:00).
+ * ========================================================================= */
+function getContadores() {
+  const semanaVigente = obtenerSemanaReparto();
+  let data = { semana: semanaVigente, mandaderos: {} };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CONTADORES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.semana === semanaVigente && parsed.mandaderos) {
+        data = parsed;
+      }
+    }
+  } catch (e) {
+    data = { semana: semanaVigente, mandaderos: {} };
+  }
+  localStorage.setItem(STORAGE_KEY_CONTADORES, JSON.stringify(data));
+  return data;
+}
+
+function setContadores(data) {
+  localStorage.setItem(STORAGE_KEY_CONTADORES, JSON.stringify(data));
+}
+
+/* =========================================================================
+ * incrementarEntrega(mid)
+ * -------------------------------------------------------------------------
+ * Entrada   : mid (String) id del mandadero.
+ * Salida    : Object { completados, tarifa } de esa semana para el mandadero.
+ * Efecto    : suma una entrega (+1) y su tarifa a los contadores semanales.
+ * ========================================================================= */
+function incrementarEntrega(mid) {
+  const data = getContadores();
+  const registro = data.mandaderos[mid] || { completados: 0, tarifa: 0 };
+  registro.completados += 1;
+  registro.tarifa += TARIFA_POR_ENTREGA;
+  data.mandaderos[mid] = registro;
+  setContadores(data);
+  return {
+    completados: registro.completados,
+    tarifa: registro.tarifa
+  };
+}
+
+/* =========================================================================
+ * verificarReinicioSemanal()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : bucle de reinicio. Si ya pasó el corte del domingo 12:00,
+ *             getContadores() devuelve una semana nueva (contadores en 0)
+ *             y se refresca el panel del mandadero que esté en sesión.
+ * ========================================================================= */
+function verificarReinicioSemanal() {
+  getContadores();
+  if (esMandadero()) {
+    renderKPIs();
+  }
 }
 
 /* =========================================================================
@@ -1280,7 +1375,7 @@ function renderHistorial() {
   const completados = pedidosDelMandadero().filter(function (p) {
     return p.estado === ESTADOS_PEDIDO.ENTREGADO;
   });
-  renderKPIs(completados.length);
+  renderKPIs();
 
   if (completados.length === 0) {
     const note = document.createElement('p');
@@ -1301,22 +1396,23 @@ function renderHistorial() {
 }
 
 /* =========================================================================
- * renderKPIs(completadosHoy)
+ * renderKPIs()
  * -------------------------------------------------------------------------
- * Entrada   : completadosHoy (Number).
+ * Entrada   : ninguno.
  * Salida    : void.
- * Efecto    : actualiza los indicadores de la parte superior del panel del
- *             mandadero (tarifa del día = completados × C$ 40).
+ * Efecto    : actualiza los indicadores del panel del mandadero leyendo los
+ *             contadores de la semana de reparto vigente (domingo 12:00).
  * ========================================================================= */
-function renderKPIs(completadosHoy) {
+function renderKPIs() {
   const tarifaElemento = document.getElementById('kpi-tarifa');
   const completadosElemento = document.getElementById('kpi-completados');
-  if (tarifaElemento) {
-    tarifaElemento.textContent = 'C$ ' + (completadosHoy * 40).toFixed(2);
+  if (!tarifaElemento || !completadosElemento || !sesionActual.mandaderoId) {
+    return;
   }
-  if (completadosElemento) {
-    completadosElemento.textContent = String(completadosHoy);
-  }
+  const data = getContadores();
+  const registro = data.mandaderos[sesionActual.mandaderoId] || { completados: 0, tarifa: 0 };
+  tarifaElemento.textContent = 'C$ ' + Number(registro.tarifa).toFixed(2);
+  completadosElemento.textContent = String(registro.completados || 0);
 }
 
 /* =========================================================================
@@ -1422,6 +1518,8 @@ function confirmarEntrega(pedidoId) {
   }
   pedidos[idx].estado = ESTADOS_PEDIDO.ENTREGADO;
   setPedidosOnBlackboard(pedidos);
+  /* El contador semanal del mandadero suma esta entrega. */
+  incrementarEntrega(sesionActual.mandaderoId);
   renderRutaActiva();
   renderHistorial();
 }
@@ -1837,6 +1935,12 @@ window.addEventListener('storage', function () {
 setInterval(function () {
   actualizarVistas();
 }, 4000);
+
+/* Bucle de reinicio del contador de reparto: cada minuto comprueba si ya
+ * pasó el corte del domingo 12:00 y, si es así, la semana nueva arranca en 0. */
+setInterval(function () {
+  verificarReinicioSemanal();
+}, 60000);
 
 setRoleUI();
 actualizarVistas();
