@@ -89,8 +89,16 @@
 
         <label>
           Imagen (URL o Base64)
-          <input type="text" id="input-image" name="image">
+          <input type="text" id="input-image" name="image" placeholder="https://... o data:image/...">
         </label>
+
+        <label class="file-label">
+          O sube una imagen del dispositivo
+          <input type="file" id="input-image-file" accept="image/*">
+        </label>
+        <p class="modal-hint">La imagen del dispositivo tiene prioridad sobre la URL. Máximo 4 MB.</p>
+        <div id="image-preview" class="image-preview" hidden></div>
+        <button type="button" id="btn-clear-image" class="btn-secondary btn-small" hidden>Quitar imagen</button>
 
         <label class="checkbox">
           <input type="checkbox" id="input-delivery" name="delivery">

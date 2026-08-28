@@ -89,6 +89,9 @@ let notifConteoPrevio = -1;
 /* Conteo de pedidos nuevos vistos por el vendedor para su tienda. */
 let notifVendedorPrevio = -1;
 
+/* Imagen elegida por el vendedor desde su dispositivo (data URL). */
+let imagenArchivoDataUrl = null;
+
 /* =========================================================================
  * TIENDAS_INICIALES()
  * -------------------------------------------------------------------------
@@ -1756,6 +1759,74 @@ function validarRegistro(datos) {
 }
 
 /* =========================================================================
+ * manejarArchivoImagen()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno (lee #input-image-file).
+ * Salida    : void.
+ * Efecto    : convierte la imagen elegida del dispositivo a data URL (lee la
+ *             con FileReader), muestra una vista previa y la guarda en
+ *             imagenArchivoDataUrl para usarla en el producto.
+ * ========================================================================= */
+function manejarArchivoImagen() {
+  const inputFile = document.getElementById('input-image-file');
+  if (!inputFile || !inputFile.files || inputFile.files.length === 0) {
+    return;
+  }
+  const archivo = inputFile.files[0];
+  if (archivo.size > 4 * 1024 * 1024) {
+    inyectarError('Imagen muy grande (máximo 4 MB). Elige una más liviana.');
+    inputFile.value = '';
+    return;
+  }
+  const lector = new FileReader();
+  lector.onload = function (e) {
+    imagenArchivoDataUrl = e.target.result;
+    const preview = document.getElementById('image-preview');
+    if (preview) {
+      preview.innerHTML = '';
+      const img = document.createElement('img');
+      img.alt = 'Vista previa de la imagen';
+      img.src = imagenArchivoDataUrl;
+      preview.appendChild(img);
+      preview.hidden = false;
+    }
+    const btnLimpiar = document.getElementById('btn-clear-image');
+    if (btnLimpiar) {
+      btnLimpiar.hidden = false;
+    }
+    inyectarError('Imagen cargada del dispositivo.');
+  };
+  lector.onerror = function () {
+    inyectarError('No se pudo leer la imagen.');
+  };
+  lector.readAsDataURL(archivo);
+}
+
+/* =========================================================================
+ * limpiarImagenArchivo()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : descarta la imagen del dispositivo y restablece el selector.
+ * ========================================================================= */
+function limpiarImagenArchivo() {
+  imagenArchivoDataUrl = null;
+  const inputFile = document.getElementById('input-image-file');
+  if (inputFile) {
+    inputFile.value = '';
+  }
+  const preview = document.getElementById('image-preview');
+  if (preview) {
+    preview.innerHTML = '';
+    preview.hidden = true;
+  }
+  const btnLimpiar = document.getElementById('btn-clear-image');
+  if (btnLimpiar) {
+    btnLimpiar.hidden = true;
+  }
+}
+
+/* =========================================================================
  * manejarSubmit(evento)
  * -------------------------------------------------------------------------
  * Entrada   : evento (Event) de submit del formulario.
@@ -1774,7 +1845,7 @@ function manejarSubmit(evento) {
   const name = document.getElementById('input-name').value.trim();
   const price = Number(document.getElementById('input-price').value);
   const category = document.getElementById('input-category').value;
-  const image = document.getElementById('input-image').value.trim();
+  const image = imagenArchivoDataUrl || document.getElementById('input-image').value.trim();
   const delivery = document.getElementById('input-delivery').checked;
   const location = document.getElementById('input-location').value.trim();
   const phone = document.getElementById('input-phone').value.trim();
@@ -1808,6 +1879,7 @@ function manejarSubmit(evento) {
   setTiendasOnBlackboard(tiendas);
   actualizarVistas();
   productForm.reset();
+  limpiarImagenArchivo();
 }
 
 /* =========================================================================
@@ -1866,6 +1938,19 @@ if (inputRegClave) {
 const btnEliminarCuenta = document.getElementById('btn-eliminar-cuenta');
 if (btnEliminarCuenta) {
   btnEliminarCuenta.addEventListener('click', eliminarCuentaVendedor);
+}
+
+/* Imagen desde el dispositivo del vendedor. */
+const inputImagenFile = document.getElementById('input-image-file');
+if (inputImagenFile) {
+  inputImagenFile.addEventListener('change', manejarArchivoImagen);
+}
+const btnLimpiarImagen = document.getElementById('btn-clear-image');
+if (btnLimpiarImagen) {
+  btnLimpiarImagen.addEventListener('click', function () {
+    limpiarImagenArchivo();
+    limpiarError();
+  });
 }
 
 /* Buscador de tiendas (pantalla inicial del cliente). */
