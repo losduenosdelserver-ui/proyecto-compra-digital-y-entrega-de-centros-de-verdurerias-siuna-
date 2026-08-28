@@ -305,3 +305,25 @@ h2 {
 .card-category + .card-seller {
   margin-top: 0.35rem;
 }
+
+.tienda-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-height: 120px;
+  justify-content: space-between;
+}
+
+.tienda-card .btn-secondary {
+  margin-top: auto;
+}
+
+#btn-volver {
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.tiendas-title {
+  font-size: 1.35rem;
+}

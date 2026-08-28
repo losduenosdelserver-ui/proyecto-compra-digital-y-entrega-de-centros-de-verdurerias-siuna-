@@ -1,13 +1,14 @@
 // VerduNica · Siuna
 // Conformidad: Estructura de tres archivos. LocalStorage como Blackboard.
 // Principio de Auditoría: cada función documenta su entrada, salida y efecto lateral.
+// Modelo multi-tienda: cada vendedor posee su propia tienda y su propio catálogo.
 
 'use strict';
 
 /* =========================================================================
  * Constantes y Claves de Almacenamiento
  * ========================================================================= */
-const STORAGE_KEY = 'verduNica_products';
+const STORAGE_KEY = 'verduNica_tiendas';
 const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba', 'raiz/tuberculo'];
 
 /* Roles de acceso: cliente (usuario), auditor (jurado), admin (vendedor).
@@ -19,52 +20,83 @@ const ROLES = {
 };
 
 /* Credenciales locales de acceso (rutas de acceso local). */
-const CLAVE_ADMIN = 'eddy2026';
 const CLAVE_AUDITOR = 'invitado2026';
 
 /* Estado lúdico de la sesión. Por defecto el rol es 'cliente'. */
 let sesionActual = {
   rol: ROLES.CLIENTE,
-  vendedorId: null,
-  nombreTienda: ''
+  tiendaId: null,     // tienda activa para el admin (su tienda) o la tienda que ve el cliente
+  tiendaNombre: ''
 };
 
-/* Datos de ejemplo iniciales para la "pizarra" (blackboard). */
-const PRODUCTOS_EJEMPLO = [
-  {
-    id: Date.now() + 1,
-    name: 'Tomate',
-    price: 15,
-    category: 'verdura',
-    image: '',
-    delivery: true,
-    location: 'Salida a Waslala',
-    phone: '+50500000001'
-  },
-  {
-    id: Date.now() + 2,
-    name: 'Plátano',
-    price: 5,
-    category: 'fruta',
-    image: '',
-    delivery: false,
-    location: 'Salida a Waslala',
-    phone: '+50500000001'
-  },
-  {
-    id: Date.now() + 3,
-    name: 'Cilantro',
-    price: 10,
-    category: 'planta/hierba',
-    image: '',
-    delivery: true,
-    location: 'Salida a Waslala',
-    phone: '+50500000001'
-  }
-];
+/* Estado de búsqueda de tiendas (pantalla inicial del cliente). */
+let busquedaTienda = '';
+
+/* Detalle de la tienda elegida por el cliente para poder ver su catálogo. */
+let tiendaVistaId = null;
+
+/* =========================================================================
+ * TIENDAS_INICIALES()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Array con las tiendas de ejemplo.
+ * Efecto    : devuelve dos tiendas: "Tramo Zeledón" (clave eddy2026) con
+ *             catálogo de ejemplo y "Esling" (clave ok) con catálogo vacío.
+ * ========================================================================= */
+function tiendasIniciales() {
+  const t = Date.now();
+  return [
+    {
+      id: 'tz',
+      nombre: 'Tramo Zeledón',
+      clave: 'eddy2026',
+      rol: ROLES.ADMIN,
+      productos: [
+        {
+          id: t + 1,
+          name: 'Tomate',
+          price: 15,
+          category: 'verdura',
+          image: '',
+          delivery: true,
+          location: 'Tramo Zeledón',
+          phone: '+50500000001'
+        },
+        {
+          id: t + 2,
+          name: 'Plátano',
+          price: 5,
+          category: 'fruta',
+          image: '',
+          delivery: false,
+          location: 'Tramo Zeledón',
+          phone: '+50500000001'
+        },
+        {
+          id: t + 3,
+          name: 'Cilantro',
+          price: 10,
+          category: 'planta/hierba',
+          image: '',
+          delivery: true,
+          location: 'Tramo Zeledón',
+          phone: '+50500000001'
+        }
+      ]
+    },
+    {
+      id: 'esling',
+      nombre: 'Esling',
+      clave: 'ok',
+      rol: ROLES.ADMIN,
+      productos: []
+    }
+  ];
+}
 
 /* IDs del DOM */
 const catalogGrid = document.getElementById('catalog-grid');
+const tiendaGrid = document.getElementById('tienda-grid');
 const errorLog = document.getElementById('error-log');
 const adminTableBody = document.getElementById('admin-table-body');
 const productForm = document.getElementById('product-form');
@@ -72,50 +104,79 @@ const registroSection = document.getElementById('registro');
 const thActions = document.getElementById('th-actions');
 const searchInput = document.getElementById('search-input');
 const storeName = document.getElementById('store-name');
+const searchTienda = document.getElementById('search-tienda');
+const catalogoSection = document.getElementById('catalogo');
+const vistasSection = document.getElementById('vista-tiendas');
 
-/* Estado de búsqueda del catálogo. */
-let busqueda = '';
+/* =========================================================================
+ * getTiendasDeBlackboard()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Array de tiendas (Array<Object>).
+ * Efecto    : método puro de lectura central. Si la llave no existe o está
+ *             vacía, inicializa la pizarra con TIENDAS_INICIALES() y la
+ *             persiste en localStorage.
+ * ========================================================================= */
+function getTiendasDeBlackboard() {
+  let raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    const iniciales = tiendasIniciales();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(iniciales));
+    raw = localStorage.getItem(STORAGE_KEY);
+  }
+  try {
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    const iniciales = tiendasIniciales();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(iniciales));
+    return iniciales;
+  }
+}
+
+/* =========================================================================
+ * setTiendasOnBlackboard(lista)
+ * -------------------------------------------------------------------------
+ * Entrada   : lista (Array) de tiendas serializables.
+ * Salida    : void.
+ * Efecto    : serializa lista y la persiste en localStorage.
+ * ========================================================================= */
+function setTiendasOnBlackboard(lista) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+}
+
+/* =========================================================================
+ * buscarTiendaPorId(id)
+ * -------------------------------------------------------------------------
+ * Entrada   : id (String) de la tienda.
+ * Salida    : Object tienda o null si no existe.
+ * Efecto    : lectura pura desde la pizarra.
+ * ========================================================================= */
+function buscarTiendaPorId(id) {
+  return getTiendasDeBlackboard().find(function (t) {
+    return String(t.id) === String(id);
+  }) || null;
+}
 
 /* =========================================================================
  * getSessionRole()
  * -------------------------------------------------------------------------
  * Entrada   : ninguno.
- * Salida    : String con el rol activo ('cliente', 'auditor' o 'admin').
- * Efecto    : devuelve el rol de sesionActual (default 'cliente').
+ * Salida    : String con el rol activo.
  * ========================================================================= */
 function getSessionRole() {
   return sesionActual.rol;
 }
 
 /* =========================================================================
- * setSessionRole(rol)
- * -------------------------------------------------------------------------
- * Entrada   : rol (String) válido dentro de ROLES.
- * Salida    : void.
- * Efecto    : asigna el rol activo en sesionActual.
- * ========================================================================= */
-function setSessionRole(rol) {
-  sesionActual.rol = rol;
-}
-
-/* =========================================================================
- * esAdmin()
+ * esAdmin() / esAuditor()
  * -------------------------------------------------------------------------
  * Entrada   : ninguno.
- * Salida    : Boolean. true si la sesión es de rol Admin.
- * Efecto    : ninguno (lectura pura).
+ * Salida    : Boolean según el rol de la sesión.
  * ========================================================================= */
 function esAdmin() {
   return getSessionRole() === ROLES.ADMIN;
 }
-
-/* =========================================================================
- * esAuditor()
- * -------------------------------------------------------------------------
- * Entrada   : ninguno.
- * Salida    : Boolean. true si la sesión es de rol Auditor.
- * Efecto    : ninguno (lectura pura).
- * ========================================================================= */
 function esAuditor() {
   return getSessionRole() === ROLES.AUDITOR;
 }
@@ -124,18 +185,32 @@ function esAuditor() {
  * requiereEscritura()
  * -------------------------------------------------------------------------
  * Entrada   : ninguno.
- * Salida    : Boolean. true solo si la sesión es Admin (permite escritura).
- * Efecto    : si el rol no es Admin, inyecta mensaje de acceso denegado
- *             en #error-log y retorna false bloqueando la mutación.
+ * Salida    : Boolean. true solo si la sesión es Admin.
+ * Efecto    : si el rol no es Admin, inyecta mensaje de acceso denegado y
+ *             retorna false bloqueando la mutación.
  * ========================================================================= */
 function requiereEscritura() {
-  if (sesionActual.rol !== ROLES.ADMIN) {
+  if (!esAdmin()) {
     if (errorLog) {
-      errorLog.innerHTML = "⚠️ Acceso denegado: Tu rol actual no tiene permisos para modificar el catálogo del campo.";
+      errorLog.innerHTML = "⚠️ Acceso denegado: Tu rol actual no tiene permisos para modificar el catálogo.";
     }
     return false;
   }
   return true;
+}
+
+/* =========================================================================
+ * inyectarError(mensaje) / limpiarError()
+ * -------------------------------------------------------------------------
+ * Entrada   : mensaje (String).
+ * Salida    : void.
+ * Efecto    : escribe / vacía el elemento #error-log.
+ * ========================================================================= */
+function inyectarError(mensaje) {
+  errorLog.textContent = mensaje;
+}
+function limpiarError() {
+  errorLog.innerHTML = '';
 }
 
 /* =========================================================================
@@ -144,10 +219,10 @@ function requiereEscritura() {
  * Entrada   : ninguno.
  * Salida    : void.
  * Efecto    : ajusta el DOM según el rol activo.
- *             cliente: oculta formulario y panel de administración.
- *             auditor: muestra panel del vendedor pero oculta formulario
- *                     y acciones de mutación.
- *             admin  : muestra formulario completo y todas las acciones.
+ *             cliente: oculta formulario y panel de administración, y
+ *                     muestra la búsqueda de tiendas.
+ *             auditor: muestra panel del vendedor pero sin mutación.
+ *             admin  : muestra formulario y panel de SU tienda.
  * ========================================================================= */
 function setRoleUI() {
   const admin = esAdmin();
@@ -165,8 +240,39 @@ function setRoleUI() {
     thActions.style.display = admin ? '' : 'none';
   }
 
+  /* Pantalla inicial del cliente: solo buscador de tiendas. */
+  if (vistasSection) {
+    vistasSection.style.display = (!admin && !auditor && !tiendaVistaId) ? '' : 'none';
+  }
+  if (catalogoSection && catalogoSection.classList) {
+    catalogoSection.classList.toggle('es-cliente', !admin && !auditor);
+  }
+
   aplicarNombreTienda();
   actualizarVistas();
+}
+
+/* =========================================================================
+ * aplicarNombreTienda()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : muestra en #store-name el nombre de la tienda activa (la del
+ *             vendedor en sesión o la que el cliente haya elegido), o el
+ *             texto genérico del mercado si no hay tienda activa.
+ * ========================================================================= */
+function aplicarNombreTienda() {
+  if (!storeName) {
+    return;
+  }
+  if (esAdmin() && sesionActual.tiendaNombre) {
+    storeName.textContent = sesionActual.tiendaNombre;
+  } else if (tiendaVistaId) {
+    const t = buscarTiendaPorId(tiendaVistaId);
+    storeName.textContent = t ? t.nombre : 'Mercado de Siuna';
+  } else {
+    storeName.textContent = 'Mercado de Siuna';
+  }
 }
 
 /* =========================================================================
@@ -174,21 +280,38 @@ function setRoleUI() {
  * -------------------------------------------------------------------------
  * Entrada   : ninguno.
  * Salida    : void.
- * Efecto    : lee la credencial ingresada. 'eddy2026' -> admin,
- *             'invitado2026' -> auditor, otra -> mensaje y rol cliente.
+ * Efecto    : lee la credencial. Si coincide con 'invitado2026' -> auditor.
+ *             Si coincide con la clave de alguna tienda -> admin de esa tienda.
+ *             De lo contrario inyecta "Clave incorrecta" y queda cliente.
  * ========================================================================= */
 function iniciarSesion() {
   const clave = prompt('Ingrese la clave de acceso (vendedor o invitado):');
-  if (clave === CLAVE_ADMIN) {
-    setSessionRole(ROLES.ADMIN);
-    const nombre = prompt('Nombre de tu tienda:');
-    sesionActual.nombreTienda = (nombre && nombre.trim()) ? nombre.trim() : '';
-  } else if (clave === CLAVE_AUDITOR) {
+  if (!clave) {
+    return;
+  }
+  if (clave === CLAVE_AUDITOR) {
     setSessionRole(ROLES.AUDITOR);
+    sesionActual.tiendaId = null;
+    sesionActual.tiendaNombre = '';
+    tiendaVistaId = null;
     limpiarError();
   } else {
-    inyectarError('Clave incorrecta');
-    setSessionRole(ROLES.CLIENTE);
+    const tiendas = getTiendasDeBlackboard();
+    const match = tiendas.find(function (t) {
+      return t.clave === clave;
+    });
+    if (match) {
+      setSessionRole(ROLES.ADMIN);
+      sesionActual.tiendaId = match.id;
+      sesionActual.tiendaNombre = match.nombre;
+      tiendaVistaId = null;
+      limpiarError();
+    } else {
+      inyectarError('Clave incorrecta');
+      setSessionRole(ROLES.CLIENTE);
+      sesionActual.tiendaId = null;
+      sesionActual.tiendaNombre = '';
+    }
   }
   setRoleUI();
 }
@@ -202,99 +325,73 @@ function iniciarSesion() {
  * ========================================================================= */
 function cerrarSesion() {
   setSessionRole(ROLES.CLIENTE);
-  sesionActual.nombreTienda = '';
+  sesionActual.tiendaId = null;
+  sesionActual.tiendaNombre = '';
+  tiendaVistaId = null;
+  busquedaTienda = '';
+  if (searchTienda) {
+    searchTienda.value = '';
+  }
   setRoleUI();
 }
 
 /* =========================================================================
- * aplicarNombreTienda()
+ * renderTiendas(lista)
  * -------------------------------------------------------------------------
- * Entrada   : ninguno.
+ * Entrada   : lista (Array) de tiendas filtradas por la búsqueda.
  * Salida    : void.
- * Efecto    : muestra el nombre de la tienda del vendedor en #store-name,
- *             o el nombre genérico del mercado si no hay sesión admin.
+ * Efecto    : re-render las tarjetas de tiendas en #tienda-grid.
  * ========================================================================= */
-function aplicarNombreTienda() {
-  if (!storeName) {
+function renderTiendas(lista) {
+  if (!tiendaGrid) {
     return;
   }
-  if (esAdmin() && sesionActual.nombreTienda) {
-    storeName.textContent = sesionActual.nombreTienda;
-  } else {
-    storeName.textContent = 'Mercado de Siuna';
-  }
-}
+  tiendaGrid.innerHTML = '';
 
-/* =========================================================================
- * getProductsFromBlackboard()
- * -------------------------------------------------------------------------
- * Entrada   : ninguno.
- * Salida    : Array de productos (Array<Object>).
- * Efecto    : método puro de lectura central. Si la llave no existe o está
- *             vacía, inicializa la pizarra con PRODUCTOS_EJEMPLO, la persiste
- *             con JSON.stringify() y la devuelve. Evita lecturas repetitivas.
- * ========================================================================= */
-function getProductsFromBlackboard() {
-  let raw = localStorage.getItem(STORAGE_KEY);
-
-  if (!raw) {
-    const iniciales = JSON.parse(JSON.stringify(PRODUCTOS_EJEMPLO));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(iniciales));
-    raw = localStorage.getItem(STORAGE_KEY);
+  if (lista.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'No se encontró ninguna tienda.';
+    tiendaGrid.appendChild(note);
+    return;
   }
 
-  try {
-    const data = JSON.parse(raw);
-    return Array.isArray(data) ? data : [];
-  } catch (e) {
-    return [];
-  }
-}
+  lista.forEach(function (t) {
+    const card = document.createElement('article');
+    card.className = 'card tienda-card';
 
-/* =========================================================================
- * setProductsOnBlackboard(lista)
- * -------------------------------------------------------------------------
- * Entrada   : lista (Array) de productos serializables.
- * Salida    : void.
- * Efecto    : serializa lista y la persiste en localStorage bajo la llave
- *             verduNica_products.
- * ========================================================================= */
-function setProductsOnBlackboard(lista) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
-}
+    const nombre = document.createElement('p');
+    nombre.className = 'card-name';
+    nombre.textContent = t.nombre || 'Sin nombre';
 
-/* =========================================================================
- * inyectarError(mensaje)
- * -------------------------------------------------------------------------
- * Entrada   : mensaje (String) de error a mostrar.
- * Salida    : void.
- * Efecto    : escribe mensaje en el elemento #error-log del DOM.
- * ========================================================================= */
-function inyectarError(mensaje) {
-  errorLog.textContent = mensaje;
-}
+    const count = document.createElement('p');
+    count.className = 'card-seller';
+    count.textContent = (t.productos ? t.productos.length : 0) + ' producto(s)';
 
-/* =========================================================================
- * limpiarError()
- * -------------------------------------------------------------------------
- * Entrada   : ninguno.
- * Salida    : void.
- * Efecto    : vacía el contenido de #error-log asignando innerHTML = "".
- * ========================================================================= */
-function limpiarError() {
-  errorLog.innerHTML = '';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-secondary';
+    btn.textContent = 'Ver tienda';
+    btn.addEventListener('click', function () {
+      elegirTienda(t.id);
+    });
+
+    card.appendChild(nombre);
+    card.appendChild(count);
+    card.appendChild(btn);
+    tiendaGrid.appendChild(card);
+  });
 }
 
 /* =========================================================================
  * renderCatalog(products)
  * -------------------------------------------------------------------------
- * Entrada   : products (Array) de productos (catálogo del cliente).
+ * Entrada   : products (Array) de productos (catálogo de la tienda elegida).
  * Salida    : void.
- * Efecto    : re-render las tarjetas del catálogo en #catalog-grid.
+ * Efecto    : re-render las tarjetas de productos en #catalog-grid.
  * ========================================================================= */
 function renderCatalog(products) {
   catalogGrid.innerHTML = '';
-
   if (products.length === 0) {
     const note = document.createElement('p');
     note.className = 'empty-note';
@@ -302,7 +399,6 @@ function renderCatalog(products) {
     catalogGrid.appendChild(note);
     return;
   }
-
   products.forEach(function (p) {
     const card = document.createElement('article');
     card.className = 'card';
@@ -332,13 +428,6 @@ function renderCatalog(products) {
     card.appendChild(price);
     card.appendChild(category);
 
-    if (p.location) {
-      const seller = document.createElement('span');
-      seller.className = 'card-seller';
-      seller.textContent = p.location;
-      card.appendChild(seller);
-    }
-
     if (p.delivery) {
       const badge = document.createElement('span');
       badge.className = 'badge';
@@ -353,7 +442,7 @@ function renderCatalog(products) {
 /* =========================================================================
  * renderSellerTable(products)
  * -------------------------------------------------------------------------
- * Entrada   : products (Array) de productos (tabla del vendedor).
+ * Entrada   : products (Array) de productos de la tienda del admin.
  * Salida    : void.
  * Efecto    : re-render la tabla de administración en #admin-table-body.
  * ========================================================================= */
@@ -375,19 +464,14 @@ function renderSellerTable(products) {
 
   products.forEach(function (p) {
     const row = document.createElement('tr');
-
     const tdName = document.createElement('td');
     tdName.textContent = p.name || '';
-
     const tdPrice = document.createElement('td');
     tdPrice.textContent = 'C$ ' + Number(p.price).toFixed(2);
-
     const tdCategory = document.createElement('td');
     tdCategory.textContent = p.category || '';
-
     const tdDelivery = document.createElement('td');
     tdDelivery.textContent = p.delivery ? 'Sí' : 'No';
-
     row.appendChild(tdName);
     row.appendChild(tdPrice);
     row.appendChild(tdCategory);
@@ -411,41 +495,89 @@ function renderSellerTable(products) {
 }
 
 /* =========================================================================
+ * tiendaActivaAdmin()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Object tienda del admin, o null si no hay sesión admin con tienda.
+ * ========================================================================= */
+function tiendaActivaAdmin() {
+  if (!esAdmin() || !sesionActual.tiendaId) {
+    return null;
+  }
+  return buscarTiendaPorId(sesionActual.tiendaId);
+}
+
+/* =========================================================================
+ * elegirTienda(id)
+ * -------------------------------------------------------------------------
+ * Entrada   : id (String) de la tienda elegida por el cliente.
+ * Salida    : void.
+ * Efecto    : establece tiendaVistaId, actualiza el nombre en el header y
+ *             renderiza el catálogo de esa tienda.
+ * ========================================================================= */
+function elegirTienda(id) {
+  tiendaVistaId = id;
+  aplicarNombreTienda();
+  setRoleUI();
+  actualizarVistas();
+}
+
+/* =========================================================================
  * actualizarVistas()
  * -------------------------------------------------------------------------
  * Entrada   : ninguno.
  * Salida    : void.
- * Efecto    : refresca catálogo del cliente y tabla del vendedor leyendo
- *             siempre desde la pizarra (blackboard).
+ * Efecto    : refresca la búsqueda de tiendas, el catálogo y la tabla del
+ *             vendedor leyendo siempre desde la pizarra (blackboard).
  * ========================================================================= */
 function actualizarVistas() {
-  const products = getProductsFromBlackboard();
-  renderSellerTable(products);
-
-  const filtrados = products.filter(function (p) {
-    const nombre = (p.name || '').toLowerCase();
-    return nombre.indexOf(busqueda) !== -1;
+  /* Pantalla inicial del cliente: lista de tiendas. */
+  const tiendas = getTiendasDeBlackboard();
+  const filtradas = tiendas.filter(function (t) {
+    const nombre = (t.nombre || '').toLowerCase();
+    return nombre.indexOf(busquedaTienda) !== -1;
   });
-  renderCatalog(filtrados);
+  renderTiendas(filtradas);
+
+  /* Catálogo: la tienda elegida por el cliente o, si es admin, su tienda. */
+  let productosVista = [];
+  if (esAdmin()) {
+    const tAdmin = tiendaActivaAdmin();
+    productosVista = tAdmin ? tAdmin.productos : [];
+    renderSellerTable(productosVista);
+    tiendaVistaId = null;
+  } else if (tiendaVistaId) {
+    const t = buscarTiendaPorId(tiendaVistaId);
+    productosVista = t ? t.productos : [];
+    renderSellerTable([]);
+  } else {
+    renderSellerTable([]);
+  }
+  renderCatalog(productosVista);
 }
 
 /* =========================================================================
  * deleteProduct(id)
  * -------------------------------------------------------------------------
- * Entrada   : id (Number) del producto a eliminar (generado con Date.now()).
+ * Entrada   : id (Number) del producto a eliminar.
  * Salida    : void.
- * Efecto    : filtra el array en memoria excluyendo el id, escribe el nuevo
- *             array en la pizarra y ejecuta actualizarVistas(). Atómico.
+ * Efecto    : elimina el producto de la tienda del admin y persiste. Atómico.
  * ========================================================================= */
 function deleteProduct(id) {
   if (!requiereEscritura()) {
     return;
   }
-  let products = getProductsFromBlackboard();
-  products = products.filter(function (p) {
+  const tiendas = getTiendasDeBlackboard();
+  const idx = tiendas.findIndex(function (t) {
+    return t.id === sesionActual.tiendaId;
+  });
+  if (idx === -1) {
+    return;
+  }
+  tiendas[idx].productos = tiendas[idx].productos.filter(function (p) {
     return p.id !== id;
   });
-  setProductsOnBlackboard(products);
+  setTiendasOnBlackboard(tiendas);
   actualizarVistas();
 }
 
@@ -454,7 +586,7 @@ function deleteProduct(id) {
  * -------------------------------------------------------------------------
  * Entrada   : datos (Object) pendiente de registro.
  * Salida    : true si es válido; false si la categoría no es permitida.
- * Efecto    : sobre #error-log inyecta "Categoría no permitida" en caso inválido.
+ * Efecto    : sobre #error-log inyecta "Categoría no permitida" si inválido.
  * ========================================================================= */
 function validarRegistro(datos) {
   if (!CATEGORIAS_PERMITIDAS.includes(datos.category.toLowerCase())) {
@@ -470,13 +602,11 @@ function validarRegistro(datos) {
  * -------------------------------------------------------------------------
  * Entrada   : evento (Event) de submit del formulario.
  * Salida    : void.
- * Efecto    : captura inputs, valida, crea objeto con id Date.now(),
- *             lo agrega a 'products', persiste y re-render. Previene recarga.
+ * Efecto    : captura inputs, valida, crea el producto y lo agrega a la
+ *             tienda del admin en sesión. Persiste y re-render. Previene recarga.
  * ========================================================================= */
 function manejarSubmit(evento) {
   evento.preventDefault();
-
-  /* Limpiar el #error-log en cada reintento para evitar advertencia pegada. */
   limpiarError();
 
   if (!requiereEscritura()) {
@@ -505,11 +635,19 @@ function manejarSubmit(evento) {
     return;
   }
 
-  const products = getProductsFromBlackboard();
+  const tiendas = getTiendasDeBlackboard();
+  const idx = tiendas.findIndex(function (t) {
+    return t.id === sesionActual.tiendaId;
+  });
+  if (idx === -1) {
+    inyectarError('No se encontró tu tienda.');
+    return;
+  }
+
   const nuevo = { id: Date.now() };
   Object.assign(nuevo, datos);
-  products.push(nuevo);
-  setProductsOnBlackboard(products);
+  tiendas[idx].productos.push(nuevo);
+  setTiendasOnBlackboard(tiendas);
   actualizarVistas();
   productForm.reset();
 }
@@ -523,7 +661,6 @@ function manejarSubmit(evento) {
  * ========================================================================= */
 productForm.addEventListener('submit', manejarSubmit);
 
-/* Botones de acceso (login/cierre de sesión del vendedor). */
 const btnLogin = document.getElementById('btn-login');
 const btnLogout = document.getElementById('btn-logout');
 if (btnLogin) {
@@ -533,10 +670,28 @@ if (btnLogout) {
   btnLogout.addEventListener('click', cerrarSesion);
 }
 
-/* Buscador del catálogo. */
+/* Buscador de tiendas (pantalla inicial del cliente). */
+if (searchTienda) {
+  searchTienda.addEventListener('input', function () {
+    busquedaTienda = searchTienda.value.trim().toLowerCase();
+    actualizarVistas();
+  });
+}
+
+/* Buscador del catálogo de la tienda elegida. */
 if (searchInput) {
   searchInput.addEventListener('input', function () {
-    busqueda = searchInput.value.trim().toLowerCase();
+    actualizarVistas();
+  });
+}
+
+/* Botón para volver a la búsqueda de tiendas (cliente). */
+const btnVolver = document.getElementById('btn-volver');
+if (btnVolver) {
+  btnVolver.addEventListener('click', function () {
+    tiendaVistaId = null;
+    aplicarNombreTienda();
+    setRoleUI();
     actualizarVistas();
   });
 }

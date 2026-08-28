@@ -18,8 +18,15 @@
   </header>
 
   <main>
+    <section id="vista-tiendas" aria-labelledby="tiendas-title">
+      <h2 id="tiendas-title" class="tiendas-title">Encuentra tu tienda</h2>
+      <input type="search" id="search-tienda" class="search-input" placeholder="Introduce el nombre de la tienda">
+      <div id="tienda-grid" class="catalog-grid"></div>
+    </section>
+
     <section id="catalogo" aria-labelledby="catalogo-title">
       <h2 id="catalogo-title">Catálogo</h2>
+      <button type="button" id="btn-volver" class="btn-secondary">← Volver a las tiendas</button>
       <input type="search" id="search-input" class="search-input" placeholder="Buscar producto...">
       <div id="catalog-grid" class="catalog-grid"></div>
       <p id="error-log" class="error-log" role="alert"></p>
