@@ -483,7 +483,7 @@ function setRoleUI() {
    * (cliente) o en sesión de vendedor/auditor. En la pantalla inicial queda
    * completamente oculta para mantener la interfaz limpia. */
   if (catalogoSection) {
-    catalogoSection.style.display = (admin || auditor || tiendaVistaId) ? '' : 'none';
+    catalogoSection.style.display = (admin || (tiendaVistaId && !auditor)) ? '' : 'none';
   }
   /* El botón "Volver a las tiendas" solo aplica al cliente que está dentro
    * de una tienda; para los demás roles sobra y confunde. */
@@ -501,6 +501,29 @@ function setRoleUI() {
   const zonaAuditor = document.getElementById('zona-auditor');
   if (zonaAuditor) {
     zonaAuditor.hidden = !auditor;
+  }
+
+  /* God admin (auditor): no ve inventario, ni pedidos de tienda, ni catálogo.
+   * Ve el índice de vendedores y de mandaderos; los vendedores ven lo suyo. */
+  const adminTitle = document.getElementById('admin-title');
+  if (adminTitle) {
+    adminTitle.textContent = auditor ? 'Bienvenido su excelencia' : 'Gestión de Inventario';
+  }
+  const seccionInventario = document.getElementById('seccion-inventario');
+  if (seccionInventario) {
+    seccionInventario.hidden = auditor;
+  }
+  const vendedoresTitle = document.getElementById('vendedores-title');
+  const vendedoresList = document.getElementById('vendedores-list');
+  if (vendedoresTitle) {
+    vendedoresTitle.hidden = !auditor;
+  }
+  if (vendedoresList) {
+    vendedoresList.hidden = !auditor;
+  }
+  const mandaderosTitle = document.getElementById('mandaderos-title');
+  if (mandaderosTitle) {
+    mandaderosTitle.textContent = auditor ? 'Índice de mandaderos' : 'Mandaderos registrados';
   }
 
   aplicarNombreTienda();
@@ -886,6 +909,74 @@ function eliminarMandadero(id) {
   }
   borrarMandaderoYTodo(id);
   renderMandaderos();
+}
+
+/* =========================================================================
+ * eliminarVendedor(id)
+ * -------------------------------------------------------------------------
+ * Entrada   : id (String) de la tienda/cuenta del vendedor a eliminar.
+ * Salida    : void.
+ * Efecto    : solo para el auditor (god admin): elimina la cuenta de OTRO
+ *             vendedor junto con sus pedidos y afiliaciones (sin fantasmas).
+ * ========================================================================= */
+function eliminarVendedor(id) {
+  if (!esAuditor()) {
+    return;
+  }
+  const tienda = getTiendasDeBlackboard().find(function (t) {
+    return t.id === id;
+  });
+  const nombre = tienda ? tienda.nombre : 'esta tienda';
+  if (!confirm('¿Eliminar la cuenta del vendedor "' + nombre + '" y todos sus pedidos? Esta acción no se puede deshacer.')) {
+    return;
+  }
+  borrarTiendaYTodo(id);
+  mostrarToast('Cierre eliminado: "' + nombre + '".');
+  actualizarVistas();
+}
+
+/* =========================================================================
+ * renderVendedores()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : lista todas las tiendas (cuentas de vendedores) en
+ *             #vendedores-list con su botón de eliminación (god admin).
+ * ========================================================================= */
+function renderVendedores() {
+  const lista = document.getElementById('vendedores-list');
+  if (!lista) {
+    return;
+  }
+  lista.innerHTML = '';
+  const tiendas = getTiendasDeBlackboard();
+  if (tiendas.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'No hay vendedores registrados.';
+    lista.appendChild(note);
+    return;
+  }
+  tiendas.forEach(function (t) {
+    const item = document.createElement('div');
+    item.className = 'mandadero-item';
+
+    const nombre = document.createElement('span');
+    nombre.className = 'mandadero-nombre';
+    nombre.textContent = (t.nombre || 'Sin nombre') + ' · ' + (t.productos ? t.productos.length : 0) + ' producto(s)';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-delete';
+    btn.textContent = 'Eliminar';
+    btn.addEventListener('click', function () {
+      eliminarVendedor(t.id);
+    });
+
+    item.appendChild(nombre);
+    item.appendChild(btn);
+    lista.appendChild(item);
+  });
 }
 
 /* =========================================================================
@@ -1841,7 +1932,11 @@ function actualizarVistas() {
 
   /* Catálogo: la tienda elegida por el cliente o, si es admin, su tienda. */
   let productosVista = [];
-  if (esAdmin()) {
+  if (esAuditor()) {
+    /* God admin (el lector): índices de vendedores y mandaderos. */
+    renderVendedores();
+    renderMandaderos();
+  } else if (esAdmin()) {
     const tAdmin = tiendaActivaAdmin();
     productosVista = tAdmin ? tAdmin.productos : [];
     renderSellerTable(productosVista);

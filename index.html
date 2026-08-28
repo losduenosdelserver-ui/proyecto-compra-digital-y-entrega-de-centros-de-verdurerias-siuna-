@@ -125,28 +125,36 @@
 
     <section id="tab-vendedores" aria-labelledby="admin-title">
       <h2 id="admin-title">Gestión de Inventario</h2>
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Precio</th>
-            <th>Categoría</th>
-            <th>Envío</th>
-            <th id="th-actions">Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="admin-table-body"></tbody>
-      </table>
 
-      <h3 class="modal-subtitle">Pedidos de mi tienda</h3>
-      <button type="button" id="vendedor-notif" class="notif-banner notif-banner-verde" hidden>
-        <span class="notif-icon">🔔</span>
-        <span id="vendedor-notif-cont">0</span>
-        <span>nuevo(s) pedido(s) en tu tienda — bájales al detalle abajo</span>
-      </button>
-      <div id="pedidos-vendedor" class="pedidos-vendedor"></div>
+      <!-- Solo vendedor (admin): inventario y pedidos de su tienda. -->
+      <div id="seccion-inventario">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Categoría</th>
+              <th>Envío</th>
+              <th id="th-actions">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body"></tbody>
+        </table>
 
-      <h3 class="modal-subtitle">Mandaderos registrados</h3>
+        <h3 class="modal-subtitle">Pedidos de mi tienda</h3>
+        <button type="button" id="vendedor-notif" class="notif-banner notif-banner-verde" hidden>
+          <span class="notif-icon">🔔</span>
+          <span id="vendedor-notif-cont">0</span>
+          <span>nuevo(s) pedido(s) en tu tienda — bájales al detalle abajo</span>
+        </button>
+        <div id="pedidos-vendedor" class="pedidos-vendedor"></div>
+      </div>
+
+      <!-- Solo god admin (auditor): índice de vendedores (usuarios admin). -->
+      <h3 class="modal-subtitle" id="vendedores-title" hidden>Índice de vendedores (usuarios admin)</h3>
+      <div id="vendedores-list" class="mandadero-list" hidden></div>
+
+      <h3 class="modal-subtitle" id="mandaderos-title">Mandaderos registrados</h3>
       <div id="mandadero-list" class="mandadero-list"></div>
 
       <div class="danger-zone" id="zona-vendedor">
