@@ -10,7 +10,15 @@
  * ========================================================================= */
 const STORAGE_KEY = 'verduNica_tiendas';
 const STORAGE_KEY_MANDADEROS = 'verduNica_mandaderos';
+const STORAGE_KEY_PEDIDOS = 'verduNica_pedidos';
 const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba', 'raiz/tuberculo'];
+
+/* Estados posibles de un pedido. */
+const ESTADOS_PEDIDO = {
+  PENDIENTE: 'pendiente',
+  EN_CAMINO: 'en_camino',
+  ENTREGADO: 'entregado'
+};
 
 /* Roles de acceso: cliente (usuario), auditor (jurado), admin (vendedor).
  * La seguridad se limita a rutas de acceso locales, sin OAuth ni MFA. */
@@ -66,6 +74,9 @@ let busquedaTienda = '';
 
 /* Detalle de la tienda elegida por el cliente para poder ver su catálogo. */
 let tiendaVistaId = null;
+
+/* Pedido en construcción por el cliente: { tiendaId, items: [], total } */
+let pedidoActual = null;
 
 /* =========================================================================
  * TIENDAS_INICIALES()
@@ -196,7 +207,12 @@ function getMandaderosDeBlackboard() {
   }
   try {
     const data = JSON.parse(raw);
-    return Array.isArray(data) ? data : [];
+    const lista = Array.isArray(data) ? data : [];
+    return lista.map(function (m) {
+      return Object.assign({}, m, {
+        tiendasAfiliadas: Array.isArray(m.tiendasAfiliadas) ? m.tiendasAfiliadas : []
+      });
+    });
   } catch (e) {
     return [];
   }
@@ -214,6 +230,51 @@ function setMandaderosOnBlackboard(lista) {
 }
 
 /* =========================================================================
+ * getPedidosDeBlackboard()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Array de pedidos.
+ * Efecto    : lectura pura. Inicializa `verduNica_pedidos` si no existe.
+ * ========================================================================= */
+function getPedidosDeBlackboard() {
+  let raw = localStorage.getItem(STORAGE_KEY_PEDIDOS);
+  if (!raw) {
+    localStorage.setItem(STORAGE_KEY_PEDIDOS, JSON.stringify([]));
+    raw = localStorage.getItem(STORAGE_KEY_PEDIDOS);
+  }
+  try {
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/* =========================================================================
+ * setPedidosOnBlackboard(lista)
+ * -------------------------------------------------------------------------
+ * Entrada   : lista (Array) de pedidos serializables.
+ * Salida    : void.
+ * Efecto    : serializa lista y la persiste en localStorage.
+ * ========================================================================= */
+function setPedidosOnBlackboard(lista) {
+  localStorage.setItem(STORAGE_KEY_PEDIDOS, JSON.stringify(lista));
+}
+
+/* =========================================================================
+ * buscarMandaderoPorId(id)
+ * -------------------------------------------------------------------------
+ * Entrada   : id (String) del mandadero.
+ * Salida    : Object mandadero o null si no existe.
+ * Efecto    : lectura pura desde la pizarra.
+ * ========================================================================= */
+function buscarMandaderoPorId(id) {
+  return getMandaderosDeBlackboard().find(function (m) {
+    return String(m.id) === String(id);
+  }) || null;
+}
+
+/* =========================================================================
  * buscarTiendaPorId(id)
  * -------------------------------------------------------------------------
  * Entrada   : id (String) de la tienda.
@@ -224,16 +285,6 @@ function buscarTiendaPorId(id) {
   return getTiendasDeBlackboard().find(function (t) {
     return String(t.id) === String(id);
   }) || null;
-}
-
-/* =========================================================================
- * getSessionRole()
- * -------------------------------------------------------------------------
- * Entrada   : ninguno.
- * Salida    : String con el rol activo.
- * ========================================================================= */
-function getSessionRole() {
-  return sesionActual.rol;
 }
 
 /* =========================================================================
@@ -581,7 +632,8 @@ function registrarCuenta() {
     mandaderosExistentes.push({
       id: 'm' + Date.now(),
       nombre: nombre,
-      clave: clave
+      clave: clave,
+      tiendasAfiliadas: []
     });
     setMandaderosOnBlackboard(mandaderosExistentes);
     if (modalError) {
@@ -800,7 +852,461 @@ function renderCatalog(products) {
       card.appendChild(badge);
     }
 
+    /* El cliente puede pedir un producto de la tienda que está viendo. */
+    if (getSessionRole() === ROLES.CLIENTE && tiendaVistaId) {
+      const btnPedido = document.createElement('button');
+      btnPedido.type = 'button';
+      btnPedido.className = 'btn-pedido';
+      btnPedido.textContent = 'Hacer pedido';
+      btnPedido.addEventListener('click', function () {
+        abrirModalPedido(p);
+      });
+      card.appendChild(btnPedido);
+    }
+
     catalogGrid.appendChild(card);
+  });
+}
+
+/* =========================================================================
+ * abrirModalPedido(producto)
+ * -------------------------------------------------------------------------
+ * Entrada   : producto (Object) seleccionado por el cliente.
+ * Salida    : void.
+ * Efecto    : guarda el pedido en construcción (tienda actual + ítem) y
+ *             muestra el modal de pedido con el resumen.
+ * ========================================================================= */
+function abrirModalPedido(producto) {
+  pedidoActual = {
+    tiendaId: tiendaVistaId,
+    items: [{ nombre: producto.name, cantidad: 1, precio: producto.price }],
+    total: Number(producto.price)
+  };
+  const modal = document.getElementById('pedido-modal');
+  const resumen = document.getElementById('pedido-resumen');
+  const error = document.getElementById('pedido-error');
+  const nombre = document.getElementById('input-pedido-nombre');
+  if (modal) {
+    modal.hidden = false;
+  }
+  if (error) {
+    error.textContent = '';
+  }
+  if (resumen) {
+    resumen.textContent = producto.name + ' × 1 — C$ ' + Number(producto.price).toFixed(2);
+  }
+  if (nombre) {
+    nombre.focus();
+  }
+}
+
+/* =========================================================================
+ * confirmarPedido()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno (lee los inputs del modal de pedido).
+ * Salida    : void.
+ * Efecto    : valida los datos del cliente, crea el pedido en verduNica_pedidos
+ *             con estado 'pendiente' y lo asigna a un mandadero afiliado a la
+ *             tienda (si existe). Cierra el modal y refresca vistas.
+ * ========================================================================= */
+function confirmarPedido() {
+  const modalError = document.getElementById('pedido-error');
+  const nombre = document.getElementById('input-pedido-nombre').value.trim();
+  const telefono = document.getElementById('input-pedido-telefono').value.trim();
+  const direccion = document.getElementById('input-pedido-direccion').value.trim();
+
+  if (!nombre || !telefono || !direccion) {
+    if (modalError) {
+      modalError.textContent = 'Completa tu nombre, teléfono y dirección.';
+    }
+    return;
+  }
+  if (!pedidoActual) {
+    return;
+  }
+
+  const pedidos = getPedidosDeBlackboard();
+  let mandaderoId = null;
+  const mandaderos = getMandaderosDeBlackboard();
+  const afiliado = mandaderos.find(function (m) {
+    return m.tiendasAfiliadas.indexOf(pedidoActual.tiendaId) !== -1;
+  });
+  if (afiliado) {
+    mandaderoId = afiliado.id;
+  }
+
+  pedidos.push({
+    id: 'ped_' + Date.now(),
+    tiendaId: pedidoActual.tiendaId,
+    cliente: {
+      nombre: nombre,
+      telefono: telefono,
+      direccion: direccion
+    },
+    productos: pedidoActual.items,
+    total: pedidoActual.total,
+    estado: ESTADOS_PEDIDO.PENDIENTE,
+    mandaderoId: mandaderoId
+  });
+  setPedidosOnBlackboard(pedidos);
+
+  const modal = document.getElementById('pedido-modal');
+  if (modal) {
+    modal.hidden = true;
+  }
+  pedidoActual = null;
+  document.getElementById('input-pedido-nombre').value = '';
+  document.getElementById('input-pedido-telefono').value = '';
+  document.getElementById('input-pedido-direccion').value = '';
+  inyectarError('✅ Pedido registrado. La tienda y el repartidor lo recibirán.');
+  actualizarVistas();
+}
+
+/* =========================================================================
+ * cancelarPedido()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : oculta el modal de pedido y descarta el pedido en construcción.
+ * ========================================================================= */
+function cancelarPedido() {
+  const modal = document.getElementById('pedido-modal');
+  if (modal) {
+    modal.hidden = true;
+  }
+  pedidoActual = null;
+}
+
+/* =========================================================================
+ * renderAfiliacion()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : lista las tiendas con checkboxes para que el mandadero afilie
+ *             su servicio. Persiste tiendasAfiliadas del mandadero en sesión.
+ * ========================================================================= */
+function renderAfiliacion() {
+  const cont = document.getElementById('afiliacion-list');
+  if (!cont || !esMandadero()) {
+    return;
+  }
+  cont.innerHTML = '';
+  const tiendas = getTiendasDeBlackboard();
+  const mandadero = buscarMandaderoPorId(sesionActual.mandaderoId);
+
+  if (tiendas.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'No hay tiendas registradas.';
+    cont.appendChild(note);
+    return;
+  }
+
+  tiendas.forEach(function (t) {
+    const label = document.createElement('label');
+    label.className = 'afiliacion-item';
+
+    const check = document.createElement('input');
+    check.type = 'checkbox';
+    check.checked = mandadero ? mandadero.tiendasAfiliadas.indexOf(t.id) !== -1 : false;
+    check.addEventListener('change', function () {
+      toggleAfiliacion(t.id, check.checked);
+    });
+
+    const span = document.createElement('span');
+    span.textContent = t.nombre;
+
+    label.appendChild(check);
+    label.appendChild(span);
+    cont.appendChild(label);
+  });
+}
+
+/* =========================================================================
+ * toggleAfiliacion(tiendaId, activo)
+ * -------------------------------------------------------------------------
+ * Entrada   : tiendaId (String) y activo (Boolean).
+ * Salida    : void.
+ * Efecto    : agrega o quita la tienda del array tiendasAfiliadas del
+ *             mandadero en sesión y refresca la ruta activa.
+ * ========================================================================= */
+function toggleAfiliacion(tiendaId, activo) {
+  if (!esMandadero() || !sesionActual.mandaderoId) {
+    return;
+  }
+  const mandaderos = getMandaderosDeBlackboard();
+  const idx = mandaderos.findIndex(function (m) {
+    return m.id === sesionActual.mandaderoId;
+  });
+  if (idx === -1) {
+    return;
+  }
+  const lista = mandaderos[idx].tiendasAfiliadas.slice();
+  const pos = lista.indexOf(tiendaId);
+  if (activo && pos === -1) {
+    lista.push(tiendaId);
+  } else if (!activo && pos !== -1) {
+    lista.splice(pos, 1);
+  }
+  mandaderos[idx].tiendasAfiliadas = lista;
+  setMandaderosOnBlackboard(mandaderos);
+  renderAfiliacion();
+  renderRutaActiva();
+}
+
+/* =========================================================================
+ * pedidosDelMandadero()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Array de pedidos de las tiendas afiliadas al mandadero en sesión,
+ *             más los pedidos que le fueron asignados explícitamente.
+ * ========================================================================= */
+function pedidosDelMandadero() {
+  if (!esMandadero() || !sesionActual.mandaderoId) {
+    return [];
+  }
+  const mandadero = buscarMandaderoPorId(sesionActual.mandaderoId);
+  const afiliadas = mandadero ? mandadero.tiendasAfiliadas : [];
+  return getPedidosDeBlackboard().filter(function (p) {
+    const porAfiliacion = afiliadas.indexOf(p.tiendaId) !== -1;
+    const asignado = String(p.mandaderoId) === String(sesionActual.mandaderoId);
+    return porAfiliacion || asignado;
+  });
+}
+
+/* =========================================================================
+ * renderRutaActiva()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : muestra los pedidos pendientes/en camino del mandadero.
+ * ========================================================================= */
+function renderRutaActiva() {
+  const cont = document.getElementById('ruta-activa');
+  if (!cont) {
+    return;
+  }
+  cont.innerHTML = '';
+  const pedidos = pedidosDelMandadero().filter(function (p) {
+    return p.estado !== ESTADOS_PEDIDO.ENTREGADO;
+  });
+
+  if (pedidos.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'Sin pedidos en ruta.';
+    cont.appendChild(note);
+    return;
+  }
+
+  pedidos.forEach(function (p) {
+    cont.appendChild(crearFichaPedido(p));
+  });
+}
+
+/* =========================================================================
+ * renderHistorial()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : lista los pedidos entregados del mandadero y actualiza KPIs.
+ * ========================================================================= */
+function renderHistorial() {
+  const cont = document.getElementById('historial-entregas');
+  if (!cont) {
+    return;
+  }
+  cont.innerHTML = '';
+  const completados = pedidosDelMandadero().filter(function (p) {
+    return p.estado === ESTADOS_PEDIDO.ENTREGADO;
+  });
+  renderKPIs(completados.length);
+
+  if (completados.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'Todavía no hay entregas completadas.';
+    cont.appendChild(note);
+    return;
+  }
+
+  completados.forEach(function (p) {
+    const item = document.createElement('div');
+    item.className = 'historial-item';
+    const txt = document.createElement('span');
+    txt.textContent = '✔ Pedido #' + (p.numero || p.id) + ' — Entregado';
+    item.appendChild(txt);
+    cont.appendChild(item);
+  });
+}
+
+/* =========================================================================
+ * renderKPIs(completadosHoy)
+ * -------------------------------------------------------------------------
+ * Entrada   : completadosHoy (Number).
+ * Salida    : void.
+ * Efecto    : actualiza los indicadores de la parte superior del panel del
+ *             mandadero (tarifa del día = completados × C$ 40).
+ * ========================================================================= */
+function renderKPIs(completadosHoy) {
+  const tarifaElemento = document.getElementById('kpi-tarifa');
+  const completadosElemento = document.getElementById('kpi-completados');
+  if (tarifaElemento) {
+    tarifaElemento.textContent = 'C$ ' + (completadosHoy * 40).toFixed(2);
+  }
+  if (completadosElemento) {
+    completadosElemento.textContent = String(completadosHoy);
+  }
+}
+
+/* =========================================================================
+ * crearFichaPedido(p)
+ * -------------------------------------------------------------------------
+ * Entrada   : p (Object) pedido.
+ * Salida    : Node con la ficha del pedido (delegación de DOM).
+ * Efecto    : genera una tarjeta con datos del pedido y un botón de acción
+ *             según su estado (iniciar entrega o confirmar entrega).
+ * ========================================================================= */
+function crearFichaPedido(p) {
+  const article = document.createElement('article');
+  article.className = 'ficha-pedido estado-' + p.estado;
+
+  const tienda = buscarTiendaPorId(p.tiendaId);
+  const encabezado = document.createElement('p');
+  encabezado.className = 'ficha-titulo';
+  encabezado.textContent = 'PEDIDO #' + (p.numero || p.id) + ' — ' + (tienda ? tienda.nombre : 'Tienda');
+  article.appendChild(encabezado);
+
+  const etiqueta = document.createElement('span');
+  etiqueta.className = 'estado-etiqueta';
+  etiqueta.textContent = p.estado === ESTADOS_PEDIDO.PENDIENTE ? 'PENDIENTE' : 'EN CAMINO';
+  article.appendChild(etiqueta);
+
+  const cliente = document.createElement('p');
+  cliente.className = 'ficha-cliente';
+  cliente.textContent = 'Cliente: ' + p.cliente.nombre + '  |  Telf: ' + p.cliente.telefono;
+  article.appendChild(cliente);
+
+  const dir = document.createElement('p');
+  dir.className = 'ficha-dir';
+  dir.textContent = 'Dir: ' + p.cliente.direccion;
+  article.appendChild(dir);
+
+  const detalle = document.createElement('p');
+  detalle.className = 'ficha-detalle';
+  detalle.textContent = p.productos.map(function (i) {
+    return i.cantidad + ' ' + i.nombre;
+  }).join(', ');
+  article.appendChild(detalle);
+
+  if (p.estado === ESTADOS_PEDIDO.PENDIENTE) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-iniciar';
+    btn.textContent = 'INICIAR ENTREGA (C$ 40)';
+    btn.addEventListener('click', function () {
+      iniciarEntrega(p.id);
+    });
+    article.appendChild(btn);
+  } else if (p.estado === ESTADOS_PEDIDO.EN_CAMINO) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-confirmar';
+    btn.textContent = '✔ CONFIRMAR ENTREGA';
+    btn.addEventListener('click', function () {
+      confirmarEntrega(p.id);
+    });
+    article.appendChild(btn);
+  }
+
+  return article;
+}
+
+/* =========================================================================
+ * iniciarEntrega(pedidoId)
+ * -------------------------------------------------------------------------
+ * Entrada   : pedidoId (String).
+ * Salida    : void.
+ * Efecto    : cambia el estado del pedido a 'en_camino', lo asigna al mandadero
+ *             en sesión y refresca la vista (el vendedor lo verá en ruta).
+ * ========================================================================= */
+function iniciarEntrega(pedidoId) {
+  const pedidos = getPedidosDeBlackboard();
+  const idx = pedidos.findIndex(function (p) {
+    return p.id === pedidoId && p.estado === ESTADOS_PEDIDO.PENDIENTE;
+  });
+  if (idx === -1) {
+    return;
+  }
+  pedidos[idx].estado = ESTADOS_PEDIDO.EN_CAMINO;
+  pedidos[idx].mandaderoId = sesionActual.mandaderoId;
+  setPedidosOnBlackboard(pedidos);
+  renderRutaActiva();
+  renderHistorial();
+}
+
+/* =========================================================================
+ * confirmarEntrega(pedidoId)
+ * -------------------------------------------------------------------------
+ * Entrada   : pedidoId (String).
+ * Salida    : void.
+ * Efecto    : cambia el estado del pedido a 'entregado' y refresca la vista.
+ * ========================================================================= */
+function confirmarEntrega(pedidoId) {
+  const pedidos = getPedidosDeBlackboard();
+  const idx = pedidos.findIndex(function (p) {
+    return p.id === pedidoId && p.estado === ESTADOS_PEDIDO.EN_CAMINO;
+  });
+  if (idx === -1) {
+    return;
+  }
+  pedidos[idx].estado = ESTADOS_PEDIDO.ENTREGADO;
+  setPedidosOnBlackboard(pedidos);
+  renderRutaActiva();
+  renderHistorial();
+}
+
+/* =========================================================================
+ * renderPedidosVendedor()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : lista los pedidos de la tienda del vendedor en sesión con su
+ *             estado actualizado.
+ * ========================================================================= */
+function renderPedidosVendedor() {
+  const cont = document.getElementById('pedidos-vendedor');
+  if (!cont) {
+    return;
+  }
+  cont.innerHTML = '';
+  if (!esAdmin()) {
+    return;
+  }
+  const pedidos = getPedidosDeBlackboard().filter(function (p) {
+    return p.tiendaId === sesionActual.tiendaId;
+  });
+
+  if (pedidos.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'No hay pedidos para tu tienda.';
+    cont.appendChild(note);
+    return;
+  }
+
+  pedidos.forEach(function (p) {
+    const item = document.createElement('div');
+    item.className = 'pedido-vendedor-item';
+    const txt = document.createElement('span');
+    const estadoTexto = p.estado === ESTADOS_PEDIDO.ENTREGADO ? 'entregado' : (p.estado === ESTADOS_PEDIDO.EN_CAMINO ? 'en camino' : 'pendiente');
+    txt.textContent = '#' + (p.numero || p.id) + ' · ' + p.cliente.nombre + ' · C$ ' + Number(p.total).toFixed(2) + ' · ' + estadoTexto;
+    const etiqueta = document.createElement('span');
+    etiqueta.className = 'estado-etiqueta';
+    etiqueta.textContent = p.estado;
+    item.appendChild(txt);
+    item.appendChild(etiqueta);
+    cont.appendChild(item);
   });
 }
 
@@ -914,6 +1420,7 @@ function actualizarVistas() {
     productosVista = tAdmin ? tAdmin.productos : [];
     renderSellerTable(productosVista);
     renderMandaderos();
+    renderPedidosVendedor();
     tiendaVistaId = null;
   } else if (tiendaVistaId) {
     const t = buscarTiendaPorId(tiendaVistaId);
@@ -921,6 +1428,13 @@ function actualizarVistas() {
     renderSellerTable([]);
   } else {
     renderSellerTable([]);
+  }
+
+  /* Panel del mandadero: afiliación, ruta activa e historial. */
+  if (esMandadero()) {
+    renderAfiliacion();
+    renderRutaActiva();
+    renderHistorial();
   }
 
   /* Interfaz limpia: ocultar el buscador de productos y el título cuando la
@@ -1115,6 +1629,16 @@ if (btnVolver) {
     setRoleUI();
     actualizarVistas();
   });
+}
+
+/* Modal de pedido del cliente. */
+const btnConfirmarPedido = document.getElementById('btn-confirmar-pedido');
+const btnCancelarPedido = document.getElementById('btn-cancelar-pedido');
+if (btnConfirmarPedido) {
+  btnConfirmarPedido.addEventListener('click', confirmarPedido);
+}
+if (btnCancelarPedido) {
+  btnCancelarPedido.addEventListener('click', cancelarPedido);
 }
 
 setRoleUI();

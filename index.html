@@ -19,9 +19,28 @@
 
   <main>
     <section id="panel-mandadero" class="panel-mandadero" hidden>
-      <h2 class="tiendas-title">Panel del Repartidor</h2>
+      <h2 class="tiendas-title">🏍️ Panel del Repartidor</h2>
       <p id="mandadero-bienvenida" class="empty-note">Bienvenido/a, repartidor.</p>
-      <p class="empty-note">Aquí aparecerán los pedidos para repartir. (Próximamente)</p>
+
+      <div class="kpis">
+        <div class="kpi">
+          <span class="kpi-label">Completados hoy</span>
+          <span id="kpi-completados" class="kpi-value">0</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Tarifa del día</span>
+          <span id="kpi-tarifa" class="kpi-value">C$ 0</span>
+        </div>
+      </div>
+
+      <h3 class="modal-subtitle">Recibir pedidos de</h3>
+      <div id="afiliacion-list" class="afiliacion-list"></div>
+
+      <h3 class="modal-subtitle">Ruta activa (pedidos del día)</h3>
+      <div id="ruta-activa" class="ruta-activa"></div>
+
+      <h3 class="modal-subtitle">Historial de entregas</h3>
+      <div id="historial-entregas" class="historial"></div>
     </section>
 
     <section id="vista-tiendas" aria-labelledby="tiendas-title">
@@ -100,6 +119,9 @@
         <tbody id="admin-table-body"></tbody>
       </table>
 
+      <h3 class="modal-subtitle">Pedidos de mi tienda</h3>
+      <div id="pedidos-vendedor" class="pedidos-vendedor"></div>
+
       <h3 class="modal-subtitle">Mandaderos registrados</h3>
       <div id="mandadero-list" class="mandadero-list"></div>
 
@@ -145,6 +167,31 @@
       </div>
 
       <p id="modal-error" class="error-log" role="alert"></p>
+    </div>
+  </div>
+
+  <!-- Modal de pedido del cliente. -->
+  <div id="pedido-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pedido-modal-title">
+      <h2 id="pedido-modal-title">Hacer pedido</h2>
+      <p id="pedido-resumen" class="empty-note"></p>
+      <label>
+        Tu nombre
+        <input type="text" id="input-pedido-nombre" class="search-input" placeholder="Tu nombre" autocomplete="off">
+      </label>
+      <label>
+        Teléfono
+        <input type="tel" id="input-pedido-telefono" class="search-input" placeholder="+505 0000-0000" autocomplete="off">
+      </label>
+      <label>
+        Dirección
+        <input type="text" id="input-pedido-direccion" class="search-input" placeholder="Frente a..." autocomplete="off">
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="btn-confirmar-pedido" class="btn-primary">Confirmar pedido</button>
+        <button type="button" id="btn-cancelar-pedido" class="btn-secondary">Cancelar</button>
+      </div>
+      <p id="pedido-error" class="error-log" role="alert"></p>
     </div>
   </div>
 

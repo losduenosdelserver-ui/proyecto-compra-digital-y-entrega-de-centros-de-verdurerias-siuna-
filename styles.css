@@ -479,3 +479,185 @@ h2 {
   background-color: #b3261e;
   color: var(--blanco);
 }
+
+/* =========================================================================
+ * Flujo de pedidos + panel del mandadero
+ * ========================================================================= */
+
+/* Botón de pedido en las tarjetas del catálogo (cliente). */
+.btn-pedido {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.6rem 1rem;
+  background-color: var(--verde-bosque);
+  color: var(--blanco);
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-pedido:hover {
+  background-color: var(--verde-menta);
+  color: #06251a;
+}
+
+/* Indicadores del mandadero (KPIs). */
+.kpis {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.kpi {
+  flex: 1;
+  background: var(--fondo);
+  border: 1px solid rgba(82, 183, 136, 0.35);
+  border-radius: var(--radio);
+  padding: 1rem;
+  text-align: center;
+}
+
+.kpi-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #5b6b64;
+  margin-bottom: 0.35rem;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--verde-bosque);
+}
+
+/* Lista de afiliación del mandadero. */
+.afiliacion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.afiliacion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background-color: var(--fondo);
+  border: 1px solid rgba(82, 183, 136, 0.3);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.afiliacion-item input {
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: var(--verde-bosque);
+}
+
+/* Ruta activa del mandadero. */
+.ruta-activa {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.ficha-pedido {
+  background-color: var(--blanco);
+  border: 1px solid rgba(82, 183, 136, 0.4);
+  border-left: 5px solid var(--verde-menta);
+  border-radius: 12px;
+  padding: 0.85rem;
+}
+
+.ficha-pedido.estado-en_camino {
+  border-left-color: #e6a817;
+}
+
+.ficha-titulo {
+  font-weight: 800;
+  color: var(--verde-bosque);
+  margin-bottom: 0.3rem;
+}
+
+.ficha-cliente,
+.ficha-dir,
+.ficha-detalle {
+  font-size: 0.9rem;
+  color: #39574a;
+  margin: 0.15rem 0;
+}
+
+.estado-etiqueta {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #066b3f;
+  background: rgba(82, 183, 136, 0.15);
+  border-radius: 8px;
+  padding: 0.2rem 0.55rem;
+  margin: 0.3rem 0;
+}
+
+.btn-iniciar,
+.btn-confirmar {
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-iniciar {
+  background-color: #e6a817;
+  color: #3a2a00;
+}
+
+.btn-confirmar {
+  background-color: var(--verde-bosque);
+  color: var(--blanco);
+}
+
+/* Historial del mandadero. */
+.historial {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.historial-item {
+  background-color: var(--fondo);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9rem;
+  color: #39574a;
+}
+
+/* Pedidos del vendedor. */
+.pedidos-vendedor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.pedido-vendedor-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background-color: var(--fondo);
+  border: 1px solid rgba(82, 183, 136, 0.3);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9rem;
+  color: #39574a;
+}
+
