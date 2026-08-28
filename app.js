@@ -10,6 +10,24 @@
 const STORAGE_KEY = 'verduNica_products';
 const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba'];
 
+/* Roles de acceso: cliente (usuario), auditor (jurado), admin (vendedor).
+ * La seguridad se limita a rutas de acceso locales, sin OAuth ni MFA. */
+const ROLES = {
+  CLIENTE: 'cliente',
+  AUDITOR: 'auditor',
+  ADMIN: 'admin'
+};
+
+/* Credenciales locales de acceso (rutas de acceso local). */
+const CLAVE_ADMIN = 'eddy2026';
+const CLAVE_AUDITOR = 'invitado2026';
+
+/* Estado lúdico de la sesión. Por defecto el rol es 'cliente'. */
+let sesionActual = {
+  rol: ROLES.CLIENTE,
+  vendedorId: null
+};
+
 /* Datos de ejemplo iniciales para la "pizarra" (blackboard). */
 const PRODUCTOS_EJEMPLO = [
   {
@@ -49,6 +67,134 @@ const catalogGrid = document.getElementById('catalog-grid');
 const errorLog = document.getElementById('error-log');
 const adminTableBody = document.getElementById('admin-table-body');
 const productForm = document.getElementById('product-form');
+const registroSection = document.getElementById('registro');
+const thActions = document.getElementById('th-actions');
+
+/* =========================================================================
+ * getSessionRole()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : String con el rol activo ('cliente', 'auditor' o 'admin').
+ * Efecto    : devuelve el rol de sesionActual (default 'cliente').
+ * ========================================================================= */
+function getSessionRole() {
+  return sesionActual.rol;
+}
+
+/* =========================================================================
+ * setSessionRole(rol)
+ * -------------------------------------------------------------------------
+ * Entrada   : rol (String) válido dentro de ROLES.
+ * Salida    : void.
+ * Efecto    : asigna el rol activo en sesionActual.
+ * ========================================================================= */
+function setSessionRole(rol) {
+  sesionActual.rol = rol;
+}
+
+/* =========================================================================
+ * esAdmin()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Boolean. true si la sesión es de rol Admin.
+ * Efecto    : ninguno (lectura pura).
+ * ========================================================================= */
+function esAdmin() {
+  return getSessionRole() === ROLES.ADMIN;
+}
+
+/* =========================================================================
+ * esAuditor()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Boolean. true si la sesión es de rol Auditor.
+ * Efecto    : ninguno (lectura pura).
+ * ========================================================================= */
+function esAuditor() {
+  return getSessionRole() === ROLES.AUDITOR;
+}
+
+/* =========================================================================
+ * requiereEscritura()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Boolean. true solo si la sesión es Admin (permite escritura).
+ * Efecto    : si el rol no es Admin, inyecta mensaje de acceso denegado
+ *             en #error-log y retorna false bloqueando la mutación.
+ * ========================================================================= */
+function requiereEscritura() {
+  if (sesionActual.rol !== ROLES.ADMIN) {
+    if (errorLog) {
+      errorLog.innerHTML = "⚠️ Acceso denegado: Tu rol actual no tiene permisos para modificar el catálogo del campo.";
+    }
+    return false;
+  }
+  return true;
+}
+
+/* =========================================================================
+ * setRoleUI()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : ajusta el DOM según el rol activo.
+ *             cliente: oculta formulario y panel de administración.
+ *             auditor: muestra panel del vendedor pero oculta formulario
+ *                     y acciones de mutación.
+ *             admin  : muestra formulario completo y todas las acciones.
+ * ========================================================================= */
+function setRoleUI() {
+  const admin = esAdmin();
+  const auditor = esAuditor();
+
+  const panelVendedores = document.getElementById('tab-vendedores');
+  if (panelVendedores) {
+    panelVendedores.style.display = admin || auditor ? '' : 'none';
+  }
+
+  if (registroSection) {
+    registroSection.style.display = admin ? '' : 'none';
+  }
+  if (thActions) {
+    thActions.style.display = admin ? '' : 'none';
+  }
+
+  actualizarVistas();
+}
+
+/* =========================================================================
+ * iniciarSesion()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : lee la credencial ingresada. 'eddy2026' -> admin,
+ *             'invitado2026' -> auditor, otra -> mensaje y rol cliente.
+ * ========================================================================= */
+function iniciarSesion() {
+  const clave = prompt('Ingrese la clave de acceso (vendedor o invitado):');
+  if (clave === CLAVE_ADMIN) {
+    setSessionRole(ROLES.ADMIN);
+  } else if (clave === CLAVE_AUDITOR) {
+    setSessionRole(ROLES.AUDITOR);
+    limpiarError();
+  } else {
+    inyectarError('Clave incorrecta');
+    setSessionRole(ROLES.CLIENTE);
+  }
+  setRoleUI();
+}
+
+/* =========================================================================
+ * cerrarSesion()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : revierte la sesión a rol de solo lectura (cliente).
+ * ========================================================================= */
+function cerrarSesion() {
+  setSessionRole(ROLES.CLIENTE);
+  setRoleUI();
+}
 
 /* =========================================================================
  * getProductsFromBlackboard()
@@ -177,11 +323,13 @@ function renderCatalog(products) {
  * ========================================================================= */
 function renderSellerTable(products) {
   adminTableBody.innerHTML = '';
+  const admin = esAdmin();
+  const numCols = admin ? 5 : 4;
 
   if (products.length === 0) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 5;
+    cell.colSpan = numCols;
     cell.className = 'empty-note';
     cell.textContent = 'No hay productos registrados.';
     row.appendChild(cell);
@@ -204,21 +352,23 @@ function renderSellerTable(products) {
     const tdDelivery = document.createElement('td');
     tdDelivery.textContent = p.delivery ? 'Sí' : 'No';
 
-    const tdActions = document.createElement('td');
-    const btn = document.createElement('button');
-    btn.className = 'btn-delete';
-    btn.textContent = 'Eliminar';
-    btn.dataset.id = p.id;
-    btn.addEventListener('click', function () {
-      deleteProduct(p.id);
-    });
-    tdActions.appendChild(btn);
-
     row.appendChild(tdName);
     row.appendChild(tdPrice);
     row.appendChild(tdCategory);
     row.appendChild(tdDelivery);
-    row.appendChild(tdActions);
+
+    if (admin) {
+      const tdActions = document.createElement('td');
+      const btn = document.createElement('button');
+      btn.className = 'btn-delete';
+      btn.textContent = 'Eliminar';
+      btn.dataset.id = p.id;
+      btn.addEventListener('click', function () {
+        deleteProduct(p.id);
+      });
+      tdActions.appendChild(btn);
+      row.appendChild(tdActions);
+    }
 
     adminTableBody.appendChild(row);
   });
@@ -247,6 +397,9 @@ function actualizarVistas() {
  *             array en la pizarra y ejecuta actualizarVistas(). Atómico.
  * ========================================================================= */
 function deleteProduct(id) {
+  if (!requiereEscritura()) {
+    return;
+  }
   let products = getProductsFromBlackboard();
   products = products.filter(function (p) {
     return p.id !== id;
@@ -284,6 +437,10 @@ function manejarSubmit(evento) {
 
   /* Limpiar el #error-log en cada reintento para evitar advertencia pegada. */
   limpiarError();
+
+  if (!requiereEscritura()) {
+    return;
+  }
 
   const name = document.getElementById('input-name').value.trim();
   const price = Number(document.getElementById('input-price').value);
@@ -324,4 +481,16 @@ function manejarSubmit(evento) {
  * Efecto    : vincula handlers y render inicial al cargar la página.
  * ========================================================================= */
 productForm.addEventListener('submit', manejarSubmit);
+
+/* Botones de acceso (login/cierre de sesión del vendedor). */
+const btnLogin = document.getElementById('btn-login');
+const btnLogout = document.getElementById('btn-logout');
+if (btnLogin) {
+  btnLogin.addEventListener('click', iniciarSesion);
+}
+if (btnLogout) {
+  btnLogout.addEventListener('click', cerrarSesion);
+}
+
+setRoleUI();
 actualizarVistas();
