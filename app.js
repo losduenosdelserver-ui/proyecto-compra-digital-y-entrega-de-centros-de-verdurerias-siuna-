@@ -120,13 +120,17 @@ const vistasSection = document.getElementById('vista-tiendas');
 function getTiendasDeBlackboard() {
   let raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) {
-    const iniciales = tiendasIniciales();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(iniciales));
-    raw = localStorage.getItem(STORAGE_KEY);
+    raw = JSON.stringify(tiendasIniciales());
+    localStorage.setItem(STORAGE_KEY, raw);
   }
   try {
     const data = JSON.parse(raw);
-    return Array.isArray(data) ? data : [];
+    const lista = Array.isArray(data) ? data : [];
+    return lista.map(function (t) {
+      return Object.assign({}, t, {
+        productos: Array.isArray(t.productos) ? t.productos : []
+      });
+    });
   } catch (e) {
     const iniciales = tiendasIniciales();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(iniciales));
@@ -442,6 +446,9 @@ function renderTiendas(lista) {
  * Efecto    : re-render las tarjetas de productos en #catalog-grid.
  * ========================================================================= */
 function renderCatalog(products) {
+  if (!Array.isArray(products)) {
+    products = [];
+  }
   catalogGrid.innerHTML = '';
   if (products.length === 0) {
     const note = document.createElement('p');
@@ -498,6 +505,9 @@ function renderCatalog(products) {
  * Efecto    : re-render la tabla de administración en #admin-table-body.
  * ========================================================================= */
 function renderSellerTable(products) {
+  if (!Array.isArray(products)) {
+    products = [];
+  }
   adminTableBody.innerHTML = '';
   const admin = esAdmin();
   const numCols = admin ? 5 : 4;
