@@ -29,6 +29,28 @@ let sesionActual = {
   tiendaNombre: ''
 };
 
+/* =========================================================================
+ * getSessionRole()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : String con el rol activo ('cliente', 'auditor' o 'admin').
+ * Efecto    : devuelve el rol de sesionActual (default 'cliente').
+ * ========================================================================= */
+function getSessionRole() {
+  return sesionActual.rol;
+}
+
+/* =========================================================================
+ * setSessionRole(rol)
+ * -------------------------------------------------------------------------
+ * Entrada   : rol (String) válido dentro de ROLES.
+ * Salida    : void.
+ * Efecto    : asigna el rol activo en sesionActual.
+ * ========================================================================= */
+function setSessionRole(rol) {
+  sesionActual.rol = rol;
+}
+
 /* Estado de búsqueda de tiendas (pantalla inicial del cliente). */
 let busquedaTienda = '';
 
