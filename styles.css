@@ -391,6 +391,16 @@ h2 {
   justify-content: center;
 }
 
+.modal-actions .btn-secondary {
+  background-color: var(--blanco);
+  color: var(--verde-bosque);
+  border: 1px solid var(--verde-bosque);
+}
+
+.modal-actions .btn-secondary:hover {
+  background-color: rgba(82, 183, 136, 0.2);
+}
+
 .modal-divider {
   border: none;
   border-top: 1px solid rgba(82, 183, 136, 0.4);
