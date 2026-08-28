@@ -471,9 +471,24 @@ function registrarCuenta() {
     return;
   }
 
+  /* Evitar claves duplicadas: una misma clave no puede existir en otra tienda
+   * (vendedor) ni en otro mandadero, pues el login autentica por clave. */
+  const tiendasExistentes = getTiendasDeBlackboard();
+  const mandaderosExistentes = getMandaderosDeBlackboard();
+  const claveEnUso = tiendasExistentes.some(function (t) {
+    return t.clave === clave;
+  }) || mandaderosExistentes.some(function (m) {
+    return m.clave === clave;
+  });
+  if (claveEnUso) {
+    if (modalError) {
+      modalError.textContent = 'Esa clave ya está en uso. Elige otra.';
+    }
+    return;
+  }
+
   if (tipo === 'vendedor') {
-    const tiendas = getTiendasDeBlackboard();
-    const duplicado = tiendas.some(function (t) {
+    const duplicado = tiendasExistentes.some(function (t) {
       return t.nombre.toLowerCase() === nombre.toLowerCase();
     });
     if (duplicado) {
@@ -482,28 +497,41 @@ function registrarCuenta() {
       }
       return;
     }
-    tiendas.push({
+    tiendasExistentes.push({
       id: 't' + Date.now(),
       nombre: nombre,
       clave: clave,
       rol: ROLES.ADMIN,
       productos: []
     });
-    setTiendasOnBlackboard(tiendas);
+    setTiendasOnBlackboard(tiendasExistentes);
     if (modalError) {
       modalError.textContent = '✅ Tienda "' + nombre + '" registrada. Ahora ingresa con tu clave.';
     }
   } else if (tipo === 'mandadero') {
-    const mandaderos = getMandaderosDeBlackboard();
-    mandaderos.push({
+    const duplicado = mandaderosExistentes.some(function (m) {
+      return m.nombre.toLowerCase() === nombre.toLowerCase();
+    });
+    if (duplicado) {
+      if (modalError) {
+        modalError.textContent = 'Ya existe un mandadero con ese nombre.';
+      }
+      return;
+    }
+    mandaderosExistentes.push({
       id: 'm' + Date.now(),
       nombre: nombre,
       clave: clave
     });
-    setMandaderosOnBlackboard(mandaderos);
+    setMandaderosOnBlackboard(mandaderosExistentes);
     if (modalError) {
       modalError.textContent = '✅ Mandadero "' + nombre + '" registrado.';
     }
+  } else {
+    if (modalError) {
+      modalError.textContent = 'Tipo de cuenta no válido.';
+    }
+    return;
   }
 
   document.getElementById('input-reg-nombre').value = '';
