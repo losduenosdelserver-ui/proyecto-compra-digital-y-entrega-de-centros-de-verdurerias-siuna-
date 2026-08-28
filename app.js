@@ -270,8 +270,11 @@ function setRoleUI() {
   if (vistasSection) {
     vistasSection.style.display = (!admin && !auditor && !tiendaVistaId) ? '' : 'none';
   }
-  if (catalogoSection && catalogoSection.classList) {
-    catalogoSection.classList.toggle('es-cliente', !admin && !auditor);
+  /* La sección del catálogo se muestra solo cuando hay una tienda elegida
+   * (cliente) o en sesión de vendedor/auditor. En la pantalla inicial queda
+   * completamente oculta para mantener la interfaz limpia. */
+  if (catalogoSection) {
+    catalogoSection.style.display = (admin || auditor || tiendaVistaId) ? '' : 'none';
   }
 
   aplicarNombreTienda();
@@ -646,6 +649,18 @@ function actualizarVistas() {
   } else {
     renderSellerTable([]);
   }
+
+  /* Interfaz limpia: ocultar el buscador de productos y el título cuando la
+   * tienda no tiene productos (no hay nada que filtrar). */
+  const hayProductos = Array.isArray(productosVista) && productosVista.length > 0;
+  if (searchInput && searchInput.parentNode) {
+    searchInput.style.display = hayProductos ? '' : 'none';
+  }
+  const catalogoTitle = document.getElementById('catalogo-title');
+  if (catalogoTitle) {
+    catalogoTitle.style.display = hayProductos || esAdmin() ? '' : 'none';
+  }
+
   renderCatalog(productosVista);
 }
 
