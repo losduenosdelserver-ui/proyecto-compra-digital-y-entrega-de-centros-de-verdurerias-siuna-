@@ -1,0 +1,327 @@
+// VerduNica · Siuna
+// Conformidad: Estructura de tres archivos. LocalStorage como Blackboard.
+// Principio de Auditoría: cada función documenta su entrada, salida y efecto lateral.
+
+'use strict';
+
+/* =========================================================================
+ * Constantes y Claves de Almacenamiento
+ * ========================================================================= */
+const STORAGE_KEY = 'verduNica_products';
+const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba'];
+
+/* Datos de ejemplo iniciales para la "pizarra" (blackboard). */
+const PRODUCTOS_EJEMPLO = [
+  {
+    id: Date.now() + 1,
+    name: 'Tomate',
+    price: 15,
+    category: 'verdura',
+    image: '',
+    delivery: true,
+    location: 'Salida a Waslala',
+    phone: '+50500000001'
+  },
+  {
+    id: Date.now() + 2,
+    name: 'Plátano',
+    price: 5,
+    category: 'fruta',
+    image: '',
+    delivery: false,
+    location: 'Salida a Waslala',
+    phone: '+50500000001'
+  },
+  {
+    id: Date.now() + 3,
+    name: 'Cilantro',
+    price: 10,
+    category: 'planta/hierba',
+    image: '',
+    delivery: true,
+    location: 'Salida a Waslala',
+    phone: '+50500000001'
+  }
+];
+
+/* IDs del DOM */
+const catalogGrid = document.getElementById('catalog-grid');
+const errorLog = document.getElementById('error-log');
+const adminTableBody = document.getElementById('admin-table-body');
+const productForm = document.getElementById('product-form');
+
+/* =========================================================================
+ * getProductsFromBlackboard()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Array de productos (Array<Object>).
+ * Efecto    : método puro de lectura central. Si la llave no existe o está
+ *             vacía, inicializa la pizarra con PRODUCTOS_EJEMPLO, la persiste
+ *             con JSON.stringify() y la devuelve. Evita lecturas repetitivas.
+ * ========================================================================= */
+function getProductsFromBlackboard() {
+  let raw = localStorage.getItem(STORAGE_KEY);
+
+  if (!raw) {
+    const iniciales = JSON.parse(JSON.stringify(PRODUCTOS_EJEMPLO));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(iniciales));
+    raw = localStorage.getItem(STORAGE_KEY);
+  }
+
+  try {
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/* =========================================================================
+ * setProductsOnBlackboard(lista)
+ * -------------------------------------------------------------------------
+ * Entrada   : lista (Array) de productos serializables.
+ * Salida    : void.
+ * Efecto    : serializa lista y la persiste en localStorage bajo la llave
+ *             verduNica_products.
+ * ========================================================================= */
+function setProductsOnBlackboard(lista) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+}
+
+/* =========================================================================
+ * inyectarError(mensaje)
+ * -------------------------------------------------------------------------
+ * Entrada   : mensaje (String) de error a mostrar.
+ * Salida    : void.
+ * Efecto    : escribe mensaje en el elemento #error-log del DOM.
+ * ========================================================================= */
+function inyectarError(mensaje) {
+  errorLog.textContent = mensaje;
+}
+
+/* =========================================================================
+ * limpiarError()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : vacía el contenido de #error-log asignando innerHTML = "".
+ * ========================================================================= */
+function limpiarError() {
+  errorLog.innerHTML = '';
+}
+
+/* =========================================================================
+ * renderCatalog(products)
+ * -------------------------------------------------------------------------
+ * Entrada   : products (Array) de productos (catálogo del cliente).
+ * Salida    : void.
+ * Efecto    : re-render las tarjetas del catálogo en #catalog-grid.
+ * ========================================================================= */
+function renderCatalog(products) {
+  catalogGrid.innerHTML = '';
+
+  if (products.length === 0) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'No hay productos aún.';
+    catalogGrid.appendChild(note);
+    return;
+  }
+
+  products.forEach(function (p) {
+    const card = document.createElement('article');
+    card.className = 'card';
+
+    const img = document.createElement('img');
+    img.className = 'product-image';
+    img.alt = p.name || 'producto';
+    img.src = p.image
+      ? p.image
+      : 'data:image/svg+xml;base64,' +
+        btoa('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="100%" height="100%" fill="#f4f9f4"/></svg>');
+
+    const name = document.createElement('p');
+    name.className = 'card-name';
+    name.textContent = p.name || 'Sin nombre';
+
+    const price = document.createElement('p');
+    price.className = 'card-price';
+    price.textContent = 'C$ ' + Number(p.price).toFixed(2);
+
+    const category = document.createElement('span');
+    category.className = 'card-category';
+    category.textContent = p.category || '';
+
+    card.appendChild(img);
+    card.appendChild(name);
+    card.appendChild(price);
+    card.appendChild(category);
+
+    if (p.delivery) {
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = 'Envío disponible';
+      card.appendChild(badge);
+    }
+
+    catalogGrid.appendChild(card);
+  });
+}
+
+/* =========================================================================
+ * renderSellerTable(products)
+ * -------------------------------------------------------------------------
+ * Entrada   : products (Array) de productos (tabla del vendedor).
+ * Salida    : void.
+ * Efecto    : re-render la tabla de administración en #admin-table-body.
+ * ========================================================================= */
+function renderSellerTable(products) {
+  adminTableBody.innerHTML = '';
+
+  if (products.length === 0) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 5;
+    cell.className = 'empty-note';
+    cell.textContent = 'No hay productos registrados.';
+    row.appendChild(cell);
+    adminTableBody.appendChild(row);
+    return;
+  }
+
+  products.forEach(function (p) {
+    const row = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    tdName.textContent = p.name || '';
+
+    const tdPrice = document.createElement('td');
+    tdPrice.textContent = 'C$ ' + Number(p.price).toFixed(2);
+
+    const tdCategory = document.createElement('td');
+    tdCategory.textContent = p.category || '';
+
+    const tdDelivery = document.createElement('td');
+    tdDelivery.textContent = p.delivery ? 'Sí' : 'No';
+
+    const tdActions = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.className = 'btn-delete';
+    btn.textContent = 'Eliminar';
+    btn.dataset.id = p.id;
+    btn.addEventListener('click', function () {
+      deleteProduct(p.id);
+    });
+    tdActions.appendChild(btn);
+
+    row.appendChild(tdName);
+    row.appendChild(tdPrice);
+    row.appendChild(tdCategory);
+    row.appendChild(tdDelivery);
+    row.appendChild(tdActions);
+
+    adminTableBody.appendChild(row);
+  });
+}
+
+/* =========================================================================
+ * actualizarVistas()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : refresca catálogo del cliente y tabla del vendedor leyendo
+ *             siempre desde la pizarra (blackboard).
+ * ========================================================================= */
+function actualizarVistas() {
+  const products = getProductsFromBlackboard();
+  renderCatalog(products);
+  renderSellerTable(products);
+}
+
+/* =========================================================================
+ * deleteProduct(id)
+ * -------------------------------------------------------------------------
+ * Entrada   : id (Number) del producto a eliminar (generado con Date.now()).
+ * Salida    : void.
+ * Efecto    : filtra el array en memoria excluyendo el id, escribe el nuevo
+ *             array en la pizarra y ejecuta actualizarVistas(). Atómico.
+ * ========================================================================= */
+function deleteProduct(id) {
+  let products = getProductsFromBlackboard();
+  products = products.filter(function (p) {
+    return p.id !== id;
+  });
+  setProductsOnBlackboard(products);
+  actualizarVistas();
+}
+
+/* =========================================================================
+ * validarRegistro(datos)
+ * -------------------------------------------------------------------------
+ * Entrada   : datos (Object) pendiente de registro.
+ * Salida    : true si es válido; false si la categoría no es permitida.
+ * Efecto    : sobre #error-log inyecta "Categoría no permitida" en caso inválido.
+ * ========================================================================= */
+function validarRegistro(datos) {
+  if (!CATEGORIAS_PERMITIDAS.includes(datos.category.toLowerCase())) {
+    inyectarError('Categoría no permitida');
+    return false;
+  }
+  limpiarError();
+  return true;
+}
+
+/* =========================================================================
+ * manejarSubmit(evento)
+ * -------------------------------------------------------------------------
+ * Entrada   : evento (Event) de submit del formulario.
+ * Salida    : void.
+ * Efecto    : captura inputs, valida, crea objeto con id Date.now(),
+ *             lo agrega a 'products', persiste y re-render. Previene recarga.
+ * ========================================================================= */
+function manejarSubmit(evento) {
+  evento.preventDefault();
+
+  /* Limpiar el #error-log en cada reintento para evitar advertencia pegada. */
+  limpiarError();
+
+  const name = document.getElementById('input-name').value.trim();
+  const price = Number(document.getElementById('input-price').value);
+  const category = document.getElementById('input-category').value;
+  const image = document.getElementById('input-image').value.trim();
+  const delivery = document.getElementById('input-delivery').checked;
+  const location = document.getElementById('input-location').value.trim();
+  const phone = document.getElementById('input-phone').value.trim();
+
+  const datos = {
+    name: name,
+    price: price,
+    category: category,
+    image: image,
+    delivery: delivery,
+    location: location,
+    phone: phone
+  };
+
+  if (!validarRegistro(datos)) {
+    return;
+  }
+
+  const products = getProductsFromBlackboard();
+  const nuevo = { id: Date.now() };
+  Object.assign(nuevo, datos);
+  products.push(nuevo);
+  setProductsOnBlackboard(products);
+  actualizarVistas();
+  productForm.reset();
+}
+
+/* =========================================================================
+ * Inicialización
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : vincula handlers y render inicial al cargar la página.
+ * ========================================================================= */
+productForm.addEventListener('submit', manejarSubmit);
+actualizarVistas();
