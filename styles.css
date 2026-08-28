@@ -327,3 +327,51 @@ h2 {
 .tiendas-title {
   font-size: 1.35rem;
 }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(27, 67, 50, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background-color: var(--blanco);
+  border-radius: 16px;
+  padding: 1.5rem;
+  width: min(92vw, 360px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+.modal h2 {
+  margin-top: 0;
+  color: var(--verde-bosque);
+}
+
+.modal-hint {
+  font-size: 0.8rem;
+  color: var(--verde-bosque);
+  opacity: 0.75;
+}
+
+.modal-hint code {
+  background-color: rgba(82, 183, 136, 0.15);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.modal-actions .btn-primary,
+.modal-actions .btn-secondary {
+  flex: 1;
+  justify-content: center;
+}

@@ -280,20 +280,68 @@ function aplicarNombreTienda() {
  * -------------------------------------------------------------------------
  * Entrada   : ninguno.
  * Salida    : void.
- * Efecto    : lee la credencial. Si coincide con 'invitado2026' -> auditor.
- *             Si coincide con la clave de alguna tienda -> admin de esa tienda.
- *             De lo contrario inyecta "Clave incorrecta" y queda cliente.
+ * Efecto    : abre el modal de acceso HTML (en pantalla) para capturar la
+ *             clave sin depender del prompt() nativo del navegador.
  * ========================================================================= */
 function iniciarSesion() {
-  const clave = prompt('Ingrese la clave de acceso (vendedor o invitado):');
+  const modal = document.getElementById('login-modal');
+  const inputClave = document.getElementById('input-clave');
+  const modalError = document.getElementById('modal-error');
+  if (modal && inputClave) {
+    modal.hidden = false;
+    inputClave.value = '';
+    if (modalError) {
+      modalError.textContent = '';
+    }
+    inputClave.focus();
+  }
+}
+
+/* =========================================================================
+ * cerrarModalAcceso()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : oculta el modal de acceso y limpia el campo de clave.
+ * ========================================================================= */
+function cerrarModalAcceso() {
+  const modal = document.getElementById('login-modal');
+  const inputClave = document.getElementById('input-clave');
+  if (modal) {
+    modal.hidden = true;
+  }
+  if (inputClave) {
+    inputClave.value = '';
+  }
+}
+
+/* =========================================================================
+ * confirmarAcceso()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : lee la clave del modal. Si coincide con 'invitado2026' ->
+ *             auditor; si coincide con la clave de una tienda -> admin de esa
+ *             tienda; si no -> muestra "Clave incorrecta" en el modal.
+ * ========================================================================= */
+function confirmarAcceso() {
+  const inputClave = document.getElementById('input-clave');
+  const modalError = document.getElementById('modal-error');
+  const clave = inputClave ? inputClave.value.trim() : '';
+
   if (!clave) {
+    if (modalError) {
+      modalError.textContent = 'Escribe una clave para continuar.';
+    }
     return;
   }
+
   if (clave === CLAVE_AUDITOR) {
     setSessionRole(ROLES.AUDITOR);
     sesionActual.tiendaId = null;
     sesionActual.tiendaNombre = '';
     tiendaVistaId = null;
+    cerrarModalAcceso();
     limpiarError();
   } else {
     const tiendas = getTiendasDeBlackboard();
@@ -305,9 +353,12 @@ function iniciarSesion() {
       sesionActual.tiendaId = match.id;
       sesionActual.tiendaNombre = match.nombre;
       tiendaVistaId = null;
+      cerrarModalAcceso();
       limpiarError();
     } else {
-      inyectarError('Clave incorrecta');
+      if (modalError) {
+        modalError.textContent = 'Clave incorrecta';
+      }
       setSessionRole(ROLES.CLIENTE);
       sesionActual.tiendaId = null;
       sesionActual.tiendaNombre = '';
@@ -668,6 +719,25 @@ if (btnLogin) {
 }
 if (btnLogout) {
   btnLogout.addEventListener('click', cerrarSesion);
+}
+
+/* Modal de acceso. */
+const btnConfirmar = document.getElementById('btn-confirmar-acceso');
+const btnCancelar = document.getElementById('btn-cancelar-acceso');
+const inputClave = document.getElementById('input-clave');
+if (btnConfirmar) {
+  btnConfirmar.addEventListener('click', confirmarAcceso);
+}
+if (btnCancelar) {
+  btnCancelar.addEventListener('click', cerrarModalAcceso);
+}
+if (inputClave) {
+  inputClave.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmarAcceso();
+    }
+  });
 }
 
 /* Buscador de tiendas (pantalla inicial del cliente). */
