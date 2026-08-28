@@ -420,6 +420,22 @@ h2 {
   font-weight: 400;
 }
 
+.panel-mandadero[hidden] {
+  display: none;
+}
+
+.panel-mandadero {
+  background-color: var(--blanco);
+  border: 1px solid rgba(82, 183, 136, 0.35);
+  border-radius: var(--radio);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.panel-mandadero .tiendas-title {
+  margin-top: 0;
+}
+
 .mandadero-list {
   display: flex;
   flex-direction: column;

@@ -17,7 +17,8 @@ const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba', 'raiz/tuberc
 const ROLES = {
   CLIENTE: 'cliente',
   AUDITOR: 'auditor',
-  ADMIN: 'admin'
+  ADMIN: 'admin',
+  MANDADERO: 'mandadero'
 };
 
 /* Credenciales locales de acceso (rutas de acceso local). */
@@ -27,7 +28,9 @@ const CLAVE_AUDITOR = 'invitado2026';
 let sesionActual = {
   rol: ROLES.CLIENTE,
   tiendaId: null,     // tienda activa para el admin (su tienda) o la tienda que ve el cliente
-  tiendaNombre: ''
+  tiendaNombre: '',
+  mandaderoId: null,  // mandadero en sesión (rol mandadero)
+  mandaderoNombre: ''
 };
 
 /* =========================================================================
@@ -49,6 +52,12 @@ function getSessionRole() {
  * Efecto    : asigna el rol activo en sesionActual.
  * ========================================================================= */
 function setSessionRole(rol) {
+  const rolesValidos = Object.keys(ROLES).map(function (k) {
+    return ROLES[k];
+  });
+  if (rolesValidos.indexOf(rol) === -1) {
+    rol = ROLES.CLIENTE;
+  }
   sesionActual.rol = rol;
 }
 
@@ -239,6 +248,9 @@ function esAdmin() {
 function esAuditor() {
   return getSessionRole() === ROLES.AUDITOR;
 }
+function esMandadero() {
+  return getSessionRole() === ROLES.MANDADERO;
+}
 
 /* =========================================================================
  * requiereEscritura()
@@ -286,6 +298,7 @@ function limpiarError() {
 function setRoleUI() {
   const admin = esAdmin();
   const auditor = esAuditor();
+  const mandadero = esMandadero();
 
   const panelVendedores = document.getElementById('tab-vendedores');
   if (panelVendedores) {
@@ -299,9 +312,15 @@ function setRoleUI() {
     thActions.style.display = admin ? '' : 'none';
   }
 
+  /* Pantalla del mandadero: su propio panel (aún sin reparto de pedidos). */
+  const panelMandadero = document.getElementById('panel-mandadero');
+  if (panelMandadero) {
+    panelMandadero.style.display = mandadero ? '' : 'none';
+  }
+
   /* Pantalla inicial del cliente: solo buscador de tiendas. */
   if (vistasSection) {
-    vistasSection.style.display = (!admin && !auditor && !tiendaVistaId) ? '' : 'none';
+    vistasSection.style.display = (!admin && !auditor && !mandadero && !tiendaVistaId) ? '' : 'none';
   }
   /* La sección del catálogo se muestra solo cuando hay una tienda elegida
    * (cliente) o en sesión de vendedor/auditor. En la pantalla inicial queda
@@ -311,6 +330,7 @@ function setRoleUI() {
   }
 
   aplicarNombreTienda();
+  actualizarPanelMandadero();
   actualizarVistas();
 }
 
@@ -329,11 +349,27 @@ function aplicarNombreTienda() {
   }
   if (esAdmin() && sesionActual.tiendaNombre) {
     storeName.textContent = sesionActual.tiendaNombre;
+  } else if (esMandadero() && sesionActual.mandaderoNombre) {
+    storeName.textContent = sesionActual.mandaderoNombre;
   } else if (tiendaVistaId) {
     const t = buscarTiendaPorId(tiendaVistaId);
     storeName.textContent = t ? t.nombre : 'Mercado de Siuna';
   } else {
     storeName.textContent = 'Mercado de Siuna';
+  }
+}
+
+/* =========================================================================
+ * actualizarPanelMandadero()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : muestra el nombre del mandadero en su panel de bienvenida.
+ * ========================================================================= */
+function actualizarPanelMandadero() {
+  const bienvenida = document.getElementById('mandadero-bienvenida');
+  if (bienvenida && sesionActual.mandaderoNombre) {
+    bienvenida.textContent = 'Bienvenido/a, ' + sesionActual.mandaderoNombre + '.';
   }
 }
 
@@ -402,28 +438,50 @@ function confirmarAcceso() {
     setSessionRole(ROLES.AUDITOR);
     sesionActual.tiendaId = null;
     sesionActual.tiendaNombre = '';
+    sesionActual.mandaderoId = null;
+    sesionActual.mandaderoNombre = '';
     tiendaVistaId = null;
     cerrarModalAcceso();
     limpiarError();
   } else {
     const tiendas = getTiendasDeBlackboard();
-    const match = tiendas.find(function (t) {
+    const matchVendedor = tiendas.find(function (t) {
       return t.clave === clave;
     });
-    if (match) {
+    if (matchVendedor) {
       setSessionRole(ROLES.ADMIN);
-      sesionActual.tiendaId = match.id;
-      sesionActual.tiendaNombre = match.nombre;
+      sesionActual.tiendaId = matchVendedor.id;
+      sesionActual.tiendaNombre = matchVendedor.nombre;
+      sesionActual.mandaderoId = null;
+      sesionActual.mandaderoNombre = '';
       tiendaVistaId = null;
       cerrarModalAcceso();
       limpiarError();
     } else {
-      if (modalError) {
-        modalError.textContent = 'Clave incorrecta';
+      /* No es vendedor: probar credencial de mandadero (repartidor). */
+      const mandaderos = getMandaderosDeBlackboard();
+      const matchMandadero = mandaderos.find(function (m) {
+        return m.clave === clave;
+      });
+      if (matchMandadero) {
+        setSessionRole(ROLES.MANDADERO);
+        sesionActual.tiendaId = null;
+        sesionActual.tiendaNombre = '';
+        sesionActual.mandaderoId = matchMandadero.id;
+        sesionActual.mandaderoNombre = matchMandadero.nombre;
+        tiendaVistaId = null;
+        cerrarModalAcceso();
+        limpiarError();
+      } else {
+        if (modalError) {
+          modalError.textContent = 'Clave incorrecta';
+        }
+        setSessionRole(ROLES.CLIENTE);
+        sesionActual.tiendaId = null;
+        sesionActual.tiendaNombre = '';
+        sesionActual.mandaderoId = null;
+        sesionActual.mandaderoNombre = '';
       }
-      setSessionRole(ROLES.CLIENTE);
-      sesionActual.tiendaId = null;
-      sesionActual.tiendaNombre = '';
     }
   }
   setRoleUI();
@@ -440,6 +498,8 @@ function cerrarSesion() {
   setSessionRole(ROLES.CLIENTE);
   sesionActual.tiendaId = null;
   sesionActual.tiendaNombre = '';
+  sesionActual.mandaderoId = null;
+  sesionActual.mandaderoNombre = '';
   tiendaVistaId = null;
   busquedaTienda = '';
   if (searchTienda) {
