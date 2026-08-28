@@ -9,6 +9,7 @@
  * Constantes y Claves de Almacenamiento
  * ========================================================================= */
 const STORAGE_KEY = 'verduNica_tiendas';
+const STORAGE_KEY_MANDADEROS = 'verduNica_mandaderos';
 const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba', 'raiz/tuberculo'];
 
 /* Roles de acceso: cliente (usuario), auditor (jurado), admin (vendedor).
@@ -169,6 +170,38 @@ function getTiendasDeBlackboard() {
  * ========================================================================= */
 function setTiendasOnBlackboard(lista) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+}
+
+/* =========================================================================
+ * getMandaderosDeBlackboard()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : Array de mandaderos (repartidores) registrados.
+ * Efecto    : lectura pura. Inicializa `verduNica_mandaderos` si no existe.
+ * ========================================================================= */
+function getMandaderosDeBlackboard() {
+  let raw = localStorage.getItem(STORAGE_KEY_MANDADEROS);
+  if (!raw) {
+    localStorage.setItem(STORAGE_KEY_MANDADEROS, JSON.stringify([]));
+    raw = localStorage.getItem(STORAGE_KEY_MANDADEROS);
+  }
+  try {
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/* =========================================================================
+ * setMandaderosOnBlackboard(lista)
+ * -------------------------------------------------------------------------
+ * Entrada   : lista (Array) de mandaderos serializables.
+ * Salida    : void.
+ * Efecto    : serializa lista y la persiste en localStorage.
+ * ========================================================================= */
+function setMandaderosOnBlackboard(lista) {
+  localStorage.setItem(STORAGE_KEY_MANDADEROS, JSON.stringify(lista));
 }
 
 /* =========================================================================
@@ -413,6 +446,68 @@ function cerrarSesion() {
     searchTienda.value = '';
   }
   setRoleUI();
+}
+
+/* =========================================================================
+ * registrarCuenta()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno (lee los inputs del modal de registro).
+ * Salida    : void.
+ * Efecto    : crea una cuenta según el tipo elegido:
+ *             - 'vendedor'  : agrega una nueva tienda a verduNica_tiendas.
+ *             - 'mandadero' : agrega un nuevo mandadero a verduNica_mandaderos.
+ *             Muestra mensajes de resultado en #modal-error.
+ * ========================================================================= */
+function registrarCuenta() {
+  const modalError = document.getElementById('modal-error');
+  const nombre = document.getElementById('input-reg-nombre').value.trim();
+  const tipo = document.getElementById('input-reg-tipo').value;
+  const clave = document.getElementById('input-reg-clave').value.trim();
+
+  if (!nombre || !clave) {
+    if (modalError) {
+      modalError.textContent = 'Completa el nombre y la clave para registrarte.';
+    }
+    return;
+  }
+
+  if (tipo === 'vendedor') {
+    const tiendas = getTiendasDeBlackboard();
+    const duplicado = tiendas.some(function (t) {
+      return t.nombre.toLowerCase() === nombre.toLowerCase();
+    });
+    if (duplicado) {
+      if (modalError) {
+        modalError.textContent = 'Ya existe una tienda con ese nombre.';
+      }
+      return;
+    }
+    tiendas.push({
+      id: 't' + Date.now(),
+      nombre: nombre,
+      clave: clave,
+      rol: ROLES.ADMIN,
+      productos: []
+    });
+    setTiendasOnBlackboard(tiendas);
+    if (modalError) {
+      modalError.textContent = '✅ Tienda "' + nombre + '" registrada. Ahora ingresa con tu clave.';
+    }
+  } else if (tipo === 'mandadero') {
+    const mandaderos = getMandaderosDeBlackboard();
+    mandaderos.push({
+      id: 'm' + Date.now(),
+      nombre: nombre,
+      clave: clave
+    });
+    setMandaderosOnBlackboard(mandaderos);
+    if (modalError) {
+      modalError.textContent = '✅ Mandadero "' + nombre + '" registrado.';
+    }
+  }
+
+  document.getElementById('input-reg-nombre').value = '';
+  document.getElementById('input-reg-clave').value = '';
 }
 
 /* =========================================================================
@@ -793,6 +888,21 @@ if (inputClave) {
     if (e.key === 'Enter') {
       e.preventDefault();
       confirmarAcceso();
+    }
+  });
+}
+
+/* Registro de cuenta (vendedor / mandadero). */
+const btnRegistrar = document.getElementById('btn-registrar');
+if (btnRegistrar) {
+  btnRegistrar.addEventListener('click', registrarCuenta);
+}
+const inputRegClave = document.getElementById('input-reg-clave');
+if (inputRegClave) {
+  inputRegClave.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      registrarCuenta();
     }
   });
 }

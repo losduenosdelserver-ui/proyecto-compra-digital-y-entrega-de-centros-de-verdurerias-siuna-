@@ -101,7 +101,7 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
       <h2 id="login-modal-title">Acceso al sistema</h2>
       <p class="modal-hint">
-        Vendedor: <code>eddy2026</code> · Esling: <code>ok</code> · Auditor: <code>invitado2026</code>
+        Vendedor: <code>eddy2026</code> · Auditor: <code>invitado2026</code>
       </p>
       <label>
         Clave de acceso
@@ -111,6 +111,29 @@
         <button type="button" id="btn-confirmar-acceso" class="btn-primary">Ingresar</button>
         <button type="button" id="btn-cancelar-acceso" class="btn-secondary">Cancelar</button>
       </div>
+
+      <hr class="modal-divider">
+
+      <h3 class="modal-subtitle">¿No tienes cuenta? Regístrate</h3>
+      <label>
+        Nombre <span class="modal-hint-inline">(tienda si eres vendedor)</span>
+        <input type="text" id="input-reg-nombre" class="search-input" placeholder="Tu nombre o el de tu tienda" autocomplete="off">
+      </label>
+      <label>
+        Tipo de cuenta
+        <select id="input-reg-tipo" class="search-input">
+          <option value="vendedor">Vendedor</option>
+          <option value="mandadero">Mandadero</option>
+        </select>
+      </label>
+      <label>
+        Clave nueva
+        <input type="password" id="input-reg-clave" class="search-input" placeholder="Elige tu clave" autocomplete="off">
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="btn-registrar" class="btn-primary">Registrar cuenta</button>
+      </div>
+
       <p id="modal-error" class="error-log" role="alert"></p>
     </div>
   </div>
