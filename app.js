@@ -1576,6 +1576,9 @@ function renderPedidosVendedor() {
  * Efecto    : re-render la tabla de administración en #admin-table-body.
  * ========================================================================= */
 function renderSellerTable(products) {
+  if (!adminTableBody) {
+    return;
+  }
   if (!Array.isArray(products)) {
     products = [];
   }
@@ -1649,9 +1652,9 @@ function tiendaActivaAdmin() {
  * ========================================================================= */
 function elegirTienda(id) {
   tiendaVistaId = id;
-  aplicarNombreTienda();
+  /* setRoleUI() ya llama a aplicarNombreTienda(), actualizarPanelMandadero()
+   * y actualizarVistas(); no hace falta refrescar de nuevo aquí. */
   setRoleUI();
-  actualizarVistas();
 }
 
 /* =========================================================================
@@ -1885,9 +1888,8 @@ const btnVolver = document.getElementById('btn-volver');
 if (btnVolver) {
   btnVolver.addEventListener('click', function () {
     tiendaVistaId = null;
-    aplicarNombreTienda();
+    /* setRoleUI() refresca el nombre y todas las vistas. */
     setRoleUI();
-    actualizarVistas();
   });
 }
 
