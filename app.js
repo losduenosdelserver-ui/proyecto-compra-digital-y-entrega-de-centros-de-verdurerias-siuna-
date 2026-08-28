@@ -492,6 +492,17 @@ function setRoleUI() {
     btnVolverArriba.style.display = (!admin && !auditor && !mandadero && tiendaVistaId) ? '' : 'none';
   }
 
+  /* Zonas del panel del vendedor: el vendedor gestiona su cuenta; el auditor
+   * (el lector) tiene en su lugar la limpieza de usuarios de prueba. */
+  const zonaVendedor = document.getElementById('zona-vendedor');
+  if (zonaVendedor) {
+    zonaVendedor.hidden = auditor;
+  }
+  const zonaAuditor = document.getElementById('zona-auditor');
+  if (zonaAuditor) {
+    zonaAuditor.hidden = !auditor;
+  }
+
   aplicarNombreTienda();
   actualizarPanelMandadero();
   actualizarVistas();
@@ -939,6 +950,63 @@ function salirDelSistema() {
     }
   }
   cerrarSesion();
+}
+
+/* =========================================================================
+ * limpiarUsuariosDePrueba()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : solo para el auditor (el lector). Borra TODOS los usuarios de
+ *             prueba (tiendas y mandaderos) conservando únicamente la tienda
+ *             "Tramo Zeledón" y cualquier cuenta llamada "lector". También
+ *             limpia los pedidos huérfanos. El auditor no se guarda en la
+ *             pizarra, por lo que siempre queda intacto.
+ * ========================================================================= */
+function limpiarUsuariosDePrueba() {
+  if (!esAuditor()) {
+    return;
+  }
+  if (!confirm('¿Borrar TODOS los usuarios de prueba? Solo se conservarán "Tramo Zeledón", "el lector" y el auditor. No se puede deshacer.')) {
+    return;
+  }
+
+  const nombresAConservar = ['tramo zeledón', 'lector'];
+  const conservar = function (nombre) {
+    return nombresAConservar.indexOf(String(nombre || '').trim().toLowerCase()) !== -1;
+  };
+
+  const tiendasRestantes = getTiendasDeBlackboard().filter(function (t) {
+    return conservar(t.nombre);
+  });
+  const idsTiendas = tiendasRestantes.map(function (t) {
+    return t.id;
+  });
+
+  const mandaderosRestantes = getMandaderosDeBlackboard().filter(function (m) {
+    return conservar(m.nombre);
+  });
+  const idsMandaderos = mandaderosRestantes.map(function (m) {
+    return m.id;
+  });
+
+  /* Solo se conservan pedidos de tiendas vivas y asignados a repartidores vivos. */
+  const pedidosRestantes = getPedidosDeBlackboard().filter(function (p) {
+    if (idsTiendas.indexOf(p.tiendaId) === -1) {
+      return false;
+    }
+    if (p.mandaderoId != null && idsMandaderos.indexOf(p.mandaderoId) === -1) {
+      return false;
+    }
+    return true;
+  });
+
+  setPedidosOnBlackboard(pedidosRestantes);
+  setMandaderosOnBlackboard(mandaderosRestantes);
+  setTiendasOnBlackboard(tiendasRestantes);
+
+  mostrarToast('✅ Usuarios de prueba eliminados. Solo quedan Tramo Zeledón y el lector.');
+  actualizarVistas();
 }
 
 /* =========================================================================
@@ -2039,6 +2107,12 @@ if (btnEliminarCuenta) {
 const btnEliminarMandadero = document.getElementById('btn-eliminar-mandadero');
 if (btnEliminarMandadero) {
   btnEliminarMandadero.addEventListener('click', eliminarCuentaMandadero);
+}
+
+/* Limpieza de usuarios de prueba (solo auditor). */
+const btnLimpiarDemo = document.getElementById('btn-limpiar-demo');
+if (btnLimpiarDemo) {
+  btnLimpiarDemo.addEventListener('click', limpiarUsuariosDePrueba);
 }
 
 /* Imagen desde el dispositivo del vendedor. */

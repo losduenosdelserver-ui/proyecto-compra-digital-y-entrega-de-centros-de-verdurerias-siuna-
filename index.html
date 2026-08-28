@@ -149,8 +149,13 @@
       <h3 class="modal-subtitle">Mandaderos registrados</h3>
       <div id="mandadero-list" class="mandadero-list"></div>
 
-      <div class="danger-zone">
+      <div class="danger-zone" id="zona-vendedor">
         <button type="button" id="btn-eliminar-cuenta" class="btn-danger">Eliminar mi cuenta</button>
+      </div>
+
+      <!-- Zona exclusiva del auditor (el lector): limpieza de usuarios de prueba. -->
+      <div class="danger-zone" id="zona-auditor" hidden>
+        <button type="button" id="btn-limpiar-demo" class="btn-danger">🧹 Limpiar usuarios de prueba (conserva Tramo Zeledón y el lector)</button>
       </div>
     </section>
   </main>
