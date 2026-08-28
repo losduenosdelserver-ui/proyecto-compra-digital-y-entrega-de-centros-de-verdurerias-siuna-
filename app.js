@@ -425,6 +425,16 @@ function renderTiendas(lista) {
   }
   tiendaGrid.innerHTML = '';
 
+  /* En la pantalla inicial solo se muestra el buscador; las tiendas NO se
+   * listan de antemano. Solo aparecen resultados cuando el usuario busca. */
+  if (!busquedaTienda) {
+    const note = document.createElement('p');
+    note.className = 'empty-note';
+    note.textContent = 'Escribe el nombre de una tienda para buscar.';
+    tiendaGrid.appendChild(note);
+    return;
+  }
+
   if (lista.length === 0) {
     const note = document.createElement('p');
     note.className = 'empty-note';
