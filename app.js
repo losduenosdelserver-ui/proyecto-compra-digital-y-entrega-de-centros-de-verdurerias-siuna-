@@ -485,6 +485,12 @@ function setRoleUI() {
   if (catalogoSection) {
     catalogoSection.style.display = (admin || auditor || tiendaVistaId) ? '' : 'none';
   }
+  /* El botón "Volver a las tiendas" solo aplica al cliente que está dentro
+   * de una tienda; para los demás roles sobra y confunde. */
+  const btnVolverArriba = document.getElementById('btn-volver');
+  if (btnVolverArriba) {
+    btnVolverArriba.style.display = (!admin && !auditor && !mandadero && tiendaVistaId) ? '' : 'none';
+  }
 
   aplicarNombreTienda();
   actualizarPanelMandadero();
