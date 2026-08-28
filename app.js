@@ -811,22 +811,69 @@ function renderMandaderos() {
 }
 
 /* =========================================================================
+ * borrarTiendaYTodo(tiendaId)
+ * -------------------------------------------------------------------------
+ * Entrada   : tiendaId (String) de la tienda a eliminar.
+ * Salida    : void.
+ * Efecto    : elimina la tienda Y sus pedidos, y la quita de las afiliaciones
+ *             de todos los mandaderos (evita cuentas/pedidos fantasma).
+ * ========================================================================= */
+function borrarTiendaYTodo(tiendaId) {
+  const mandaderos = getMandaderosDeBlackboard().map(function (m) {
+    return Object.assign({}, m, {
+      tiendasAfiliadas: m.tiendasAfiliadas.filter(function (id) {
+        return id !== tiendaId;
+      })
+    });
+  });
+  setMandaderosOnBlackboard(mandaderos);
+
+  const pedidos = getPedidosDeBlackboard().filter(function (p) {
+    return p.tiendaId !== tiendaId;
+  });
+  setPedidosOnBlackboard(pedidos);
+
+  const tiendasRestantes = getTiendasDeBlackboard().filter(function (t) {
+    return t.id !== tiendaId;
+  });
+  setTiendasOnBlackboard(tiendasRestantes);
+}
+
+/* =========================================================================
+ * borrarMandaderoYTodo(mid)
+ * -------------------------------------------------------------------------
+ * Entrada   : mid (String) id del mandadero a eliminar.
+ * Salida    : void.
+ * Efecto    : elimina el mandadero y desasigna sus pedidos (mandaderoId -> null)
+ *             para que no queden entregas a cargo de una cuenta inexistente.
+ * ========================================================================= */
+function borrarMandaderoYTodo(mid) {
+  const pedidos = getPedidosDeBlackboard().map(function (p) {
+    return Object.assign({}, p, {
+      mandaderoId: String(p.mandaderoId) === String(mid) ? null : p.mandaderoId
+    });
+  });
+  setPedidosOnBlackboard(pedidos);
+
+  const mandaderosRestantes = getMandaderosDeBlackboard().filter(function (m) {
+    return m.id !== mid;
+  });
+  setMandaderosOnBlackboard(mandaderosRestantes);
+}
+
+/* =========================================================================
  * eliminarMandadero(id)
  * -------------------------------------------------------------------------
  * Entrada   : id (String) del mandadero a eliminar.
  * Salida    : void.
- * Efecto    : pide confirmación y, si se acepta, elimina el mandadero de
- *             verduNica_mandaderos y refresca la lista.
+ * Efecto    : pide confirmación y, si se acepta, elimina el mandadero con toda
+ *             su limpieza y refresca la lista del vendedor.
  * ========================================================================= */
 function eliminarMandadero(id) {
-  if (!confirm('¿Estás seguro/a de eliminar este mandadero?')) {
+  if (!confirm('¿Estás seguro/a de eliminar este mandadero y desasignar sus pedidos?')) {
     return;
   }
-  const mandaderos = getMandaderosDeBlackboard();
-  const restantes = mandaderos.filter(function (m) {
-    return m.id !== id;
-  });
-  setMandaderosOnBlackboard(restantes);
+  borrarMandaderoYTodo(id);
   renderMandaderos();
 }
 
@@ -836,20 +883,61 @@ function eliminarMandadero(id) {
  * Entrada   : ninguno.
  * Salida    : void.
  * Efecto    : pide confirmación; si se acepta, elimina la tienda del vendedor
- *             en sesión de verduNica_tiendas y cierra la sesión.
+ *             junto con sus pedidos y afiliaciones, y cierra la sesión.
  * ========================================================================= */
 function eliminarCuentaVendedor() {
   if (!esAdmin() || !sesionActual.tiendaId) {
     return;
   }
-  if (!confirm('¿Estás seguro/a de eliminar tu usuario y tu tienda?')) {
+  if (!confirm('¿Eliminar tu usuario, tu tienda y todos sus pedidos? Esta acción no se puede deshacer.')) {
     return;
   }
-  const tiendas = getTiendasDeBlackboard();
-  const restantes = tiendas.filter(function (t) {
-    return t.id !== sesionActual.tiendaId;
-  });
-  setTiendasOnBlackboard(restantes);
+  borrarTiendaYTodo(sesionActual.tiendaId);
+  cerrarSesion();
+}
+
+/* =========================================================================
+ * eliminarCuentaMandadero()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : pide confirmación; si se acepta, elimina la cuenta del mandadero
+ *             en sesión, desasigna sus pedidos y cierra la sesión.
+ * ========================================================================= */
+function eliminarCuentaMandadero() {
+  if (!esMandadero() || !sesionActual.mandaderoId) {
+    return;
+  }
+  if (!confirm('¿Eliminar tu cuenta de repartidor? Se desasignarán tus pedidos. Esta acción no se puede deshacer.')) {
+    return;
+  }
+  borrarMandaderoYTodo(sesionActual.mandaderoId);
+  cerrarSesion();
+}
+
+/* =========================================================================
+ * salirDelSistema()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : sale de la sesión. Si quien sale es vendedor o mandadero, se le
+ *             pregunta si quiere eliminar definitivamente su cuenta para que
+ *             no quede ningún usuario fantasma en el sistema. Aceptar elimina
+ *             la cuenta; Cancelar solo cierra la sesión.
+ * ========================================================================= */
+function salirDelSistema() {
+  if (esAdmin() || esMandadero()) {
+    const borrar = confirm('¿Confirmas que sales del sistema? Si aceptas, tu cuenta se elimina definitivamente. (Aceptar = eliminar cuenta · Cancelar = solo cerrar sesión)');
+    if (borrar) {
+      if (esAdmin()) {
+        borrarTiendaYTodo(sesionActual.tiendaId);
+      } else {
+        borrarMandaderoYTodo(sesionActual.mandaderoId);
+      }
+      cerrarSesion();
+      return;
+    }
+  }
   cerrarSesion();
 }
 
@@ -1903,7 +1991,8 @@ if (btnLogin) {
   btnLogin.addEventListener('click', iniciarSesion);
 }
 if (btnLogout) {
-  btnLogout.addEventListener('click', cerrarSesion);
+  /* Al salir se consulta si la cuenta debe eliminarse (evita cuentas fantasma). */
+  btnLogout.addEventListener('click', salirDelSistema);
 }
 
 /* Modal de acceso. */
@@ -1944,6 +2033,12 @@ if (inputRegClave) {
 const btnEliminarCuenta = document.getElementById('btn-eliminar-cuenta');
 if (btnEliminarCuenta) {
   btnEliminarCuenta.addEventListener('click', eliminarCuentaVendedor);
+}
+
+/* Eliminar cuenta del mandadero en sesión. */
+const btnEliminarMandadero = document.getElementById('btn-eliminar-mandadero');
+if (btnEliminarMandadero) {
+  btnEliminarMandadero.addEventListener('click', eliminarCuentaMandadero);
 }
 
 /* Imagen desde el dispositivo del vendedor. */
