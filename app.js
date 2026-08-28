@@ -370,10 +370,11 @@ function setRoleUI() {
     thActions.style.display = admin ? '' : 'none';
   }
 
-  /* Pantalla del mandadero: su propio panel (aún sin reparto de pedidos). */
+  /* Pantalla del mandadero: su propio panel. Se alterna la propiedad hidden
+   * (no solo style.display) porque el elemento nace con el atributo hidden. */
   const panelMandadero = document.getElementById('panel-mandadero');
   if (panelMandadero) {
-    panelMandadero.style.display = mandadero ? '' : 'none';
+    panelMandadero.hidden = !mandadero;
   }
 
   /* Pantalla inicial del cliente: solo buscador de tiendas. */
