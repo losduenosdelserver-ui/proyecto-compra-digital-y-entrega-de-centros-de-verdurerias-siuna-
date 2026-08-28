@@ -181,10 +181,8 @@ function iniciarSesion() {
   const clave = prompt('Ingrese la clave de acceso (vendedor o invitado):');
   if (clave === CLAVE_ADMIN) {
     setSessionRole(ROLES.ADMIN);
-    const inputStore = document.getElementById('input-store');
-    if (inputStore && inputStore.value.trim()) {
-      sesionActual.nombreTienda = inputStore.value.trim();
-    }
+    const nombre = prompt('Nombre de tu tienda:');
+    sesionActual.nombreTienda = (nombre && nombre.trim()) ? nombre.trim() : '';
   } else if (clave === CLAVE_AUDITOR) {
     setSessionRole(ROLES.AUDITOR);
     limpiarError();
