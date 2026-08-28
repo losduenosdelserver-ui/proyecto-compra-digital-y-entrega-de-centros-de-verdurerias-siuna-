@@ -201,13 +201,17 @@ h2 {
 
 .btn-secondary {
   background-color: transparent;
-  color: var(--fondo);
+  color: var(--verde-bosque);
   border: 1px solid var(--verde-menta);
   border-radius: 999px;
   padding: 0.5rem 1.25rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
+}
+
+.site-header .btn-secondary {
+  color: var(--fondo);
 }
 
 .btn-secondary:hover {
@@ -527,6 +531,11 @@ h2 {
   padding: 0.4rem 0.85rem;
   font-size: 0.85rem;
   margin-top: 0.5rem;
+}
+
+.btn-afiliado {
+  background-color: rgba(82, 183, 136, 0.25);
+  border-color: var(--verde-bosque);
 }
 
 .btn-small[hidden] {

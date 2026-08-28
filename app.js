@@ -829,6 +829,13 @@ function renderMandaderos() {
     const nombre = document.createElement('span');
     nombre.className = 'mandadero-nombre';
     nombre.textContent = m.nombre || 'Sin nombre';
+    const btnAfiliacion = document.createElement('button');
+    btnAfiliacion.type = 'button';
+    btnAfiliacion.className = 'btn-secondary btn-small';
+    btnAfiliacion.textContent = 'Afiliar a mi tienda';
+    btnAfiliacion.addEventListener('click', function () {
+      toggleAfiliacionDesdeVendedor(m.id);
+    });
 
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -839,9 +846,57 @@ function renderMandaderos() {
     });
 
     item.appendChild(nombre);
+
+    /* El vendedor puede afiliar al repartidor a SU tienda directamente;
+     * el god admin (auditor) solo lee la lista. */
+    if (esAdmin() && sesionActual.tiendaId) {
+      const miTiendaId = sesionActual.tiendaId;
+      const afin = (m.tiendasAfiliadas || []).indexOf(miTiendaId) !== -1;
+      btnAfiliacion.textContent = afin ? 'Quitar de mi tienda' : 'Afiliar a mi tienda';
+      btnAfiliacion.classList.toggle('btn-afiliado', afin);
+      item.appendChild(btnAfiliacion);
+    }
+
     item.appendChild(btn);
     cont.appendChild(item);
   });
+}
+
+/* =========================================================================
+ * toggleAfiliacionDesdeVendedor(mid)
+ * -------------------------------------------------------------------------
+ * Entrada   : mid (String) id del mandadero.
+ * Salida    : void.
+ * Efecto    : agrega/retira la tienda del vendedor en sesión a las tiendas
+ *             afiliadas de ese mandadero. Es el complemento de la afiliación
+ *             que el mandadero hace desde su propio panel.
+ * ========================================================================= */
+function toggleAfiliacionDesdeVendedor(mid) {
+  if (!esAdmin() || !sesionActual.tiendaId) {
+    return;
+  }
+  const tiendaId = sesionActual.tiendaId;
+  const mandaderos = getMandaderosDeBlackboard();
+  const idx = mandaderos.findIndex(function (m) {
+    return m.id === mid;
+  });
+  if (idx === -1) {
+    return;
+  }
+  const lista = mandaderos[idx].tiendasAfiliadas.slice();
+  const pos = lista.indexOf(tiendaId);
+  let accion = '';
+  if (pos === -1) {
+    lista.push(tiendaId);
+    accion = 'afiliado a esta tienda';
+  } else {
+    lista.splice(pos, 1);
+    accion = 'quitado de esta tienda';
+  }
+  mandaderos[idx].tiendasAfiliadas = lista;
+  setMandaderosOnBlackboard(mandaderos);
+  renderMandaderos();
+  mostrarToast('Repartidor ' + (mandaderos[idx].nombre || '') + ' ' + accion + '.');
 }
 
 /* =========================================================================
@@ -1022,24 +1077,12 @@ function eliminarCuentaMandadero() {
  * -------------------------------------------------------------------------
  * Entrada   : ninguno.
  * Salida    : void.
- * Efecto    : sale de la sesión. Si quien sale es vendedor o mandadero, se le
- *             pregunta si quiere eliminar definitivamente su cuenta para que
- *             no quede ningún usuario fantasma en el sistema. Aceptar elimina
- *             la cuenta; Cancelar solo cierra la sesión.
+ * Efecto    : cierra la sesión sin tocar la cuenta. La eliminación definitiva
+ *             se hace SOLO desde los botones "Eliminar mi cuenta" (vendedor)
+ *             y "Eliminar mi cuenta de repartidor" (mandadero), para que el
+ *             usuario nunca confunda salir con borrarse.
  * ========================================================================= */
 function salirDelSistema() {
-  if (esAdmin() || esMandadero()) {
-    const borrar = confirm('¿Confirmas que sales del sistema? Si aceptas, tu cuenta se elimina definitivamente. (Aceptar = eliminar cuenta · Cancelar = solo cerrar sesión)');
-    if (borrar) {
-      if (esAdmin()) {
-        borrarTiendaYTodo(sesionActual.tiendaId);
-      } else {
-        borrarMandaderoYTodo(sesionActual.mandaderoId);
-      }
-      cerrarSesion();
-      return;
-    }
-  }
   cerrarSesion();
 }
 
