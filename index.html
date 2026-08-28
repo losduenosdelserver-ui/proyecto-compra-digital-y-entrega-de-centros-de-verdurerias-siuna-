@@ -40,6 +40,7 @@
       </div>
 
       <h3 class="modal-subtitle">Recibir pedidos de</h3>
+      <p id="afiliacion-pista" class="afiliacion-pista" hidden>Marca una o más tiendas para recibir sus pedidos y sus notificaciones.</p>
       <div id="afiliacion-list" class="afiliacion-list"></div>
 
       <h3 class="modal-subtitle">Ruta activa (pedidos del día)</h3>
@@ -126,6 +127,11 @@
       </table>
 
       <h3 class="modal-subtitle">Pedidos de mi tienda</h3>
+      <button type="button" id="vendedor-notif" class="notif-banner notif-banner-verde" hidden>
+        <span class="notif-icon">🔔</span>
+        <span id="vendedor-notif-cont">0</span>
+        <span>nuevo(s) pedido(s) en tu tienda — bájales al detalle abajo</span>
+      </button>
       <div id="pedidos-vendedor" class="pedidos-vendedor"></div>
 
       <h3 class="modal-subtitle">Mandaderos registrados</h3>

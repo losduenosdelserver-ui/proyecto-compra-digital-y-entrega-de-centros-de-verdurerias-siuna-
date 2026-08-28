@@ -82,6 +82,9 @@ let pedidoActual = null;
  * pedidos nuevos y avisar con una notificación). */
 let notifConteoPrevio = -1;
 
+/* Conteo de pedidos nuevos vistos por el vendedor para su tienda. */
+let notifVendedorPrevio = -1;
+
 /* =========================================================================
  * TIENDAS_INICIALES()
  * -------------------------------------------------------------------------
@@ -510,6 +513,7 @@ function confirmarAcceso() {
       sesionActual.mandaderoId = null;
       sesionActual.mandaderoNombre = '';
       tiendaVistaId = null;
+      notifVendedorPrevio = -1;
       cerrarModalAcceso();
       limpiarError();
     } else {
@@ -1032,6 +1036,13 @@ function renderAfiliacion() {
   const tiendas = getTiendasDeBlackboard();
   const mandadero = buscarMandaderoPorId(sesionActual.mandaderoId);
 
+  /* Pista: sin tiendas afiliadas el mandadero no recibe pedidos. */
+  const pista = document.getElementById('afiliacion-pista');
+  const afiliadaAlguna = mandadero && Array.isArray(mandadero.tiendasAfiliadas) && mandadero.tiendasAfiliadas.length > 0;
+  if (pista) {
+    pista.hidden = afiliadaAlguna;
+  }
+
   if (tiendas.length === 0) {
     const note = document.createElement('p');
     note.className = 'empty-note';
@@ -1177,6 +1188,49 @@ function mostrarToast(mensaje) {
       toast.parentNode.removeChild(toast);
     }
   }, 5000);
+}
+
+/* =========================================================================
+ * renderNotificacionesVendedor()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : muestra/oculta el aviso de pedidos nuevos para la tienda del
+ *             vendedor en sesión y lanza un toast cuando llega un pedido
+ *             que no se había visto antes.
+ * ========================================================================= */
+function renderNotificacionesVendedor() {
+  const banner = document.getElementById('vendedor-notif');
+  const cont = document.getElementById('vendedor-notif-cont');
+  if (!banner || !cont) {
+    return;
+  }
+  if (!esAdmin()) {
+    return;
+  }
+  const pedidos = getPedidosDeBlackboard().filter(function (p) {
+    return p.tiendaId === sesionActual.tiendaId;
+  });
+  const nuevos = pedidos.filter(function (p) {
+    return p.estado !== ESTADOS_PEDIDO.ENTREGADO;
+  });
+  const n = nuevos.length;
+
+  if (n > 0) {
+    banner.hidden = false;
+    cont.textContent = String(n);
+  } else {
+    banner.hidden = true;
+  }
+
+  if (notifVendedorPrevio === -1) {
+    notifVendedorPrevio = n;
+    return;
+  }
+  if (n > notifVendedorPrevio) {
+    mostrarToast('🔔 Te llegó un pedido nuevo a tu tienda! Revisa abajo.');
+  }
+  notifVendedorPrevio = n;
 }
 
 /* =========================================================================
@@ -1526,6 +1580,7 @@ function actualizarVistas() {
     renderSellerTable(productosVista);
     renderMandaderos();
     renderPedidosVendedor();
+    renderNotificacionesVendedor();
     tiendaVistaId = null;
   } else if (tiendaVistaId) {
     const t = buscarTiendaPorId(tiendaVistaId);
@@ -1758,6 +1813,17 @@ if (btnNotif) {
     const ruta = document.getElementById('ruta-activa');
     if (ruta && ruta.scrollIntoView) {
       ruta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+}
+
+/* Botón de notificación del vendedor: baja a sus pedidos. */
+const btnNotifVendedor = document.getElementById('vendedor-notif');
+if (btnNotifVendedor) {
+  btnNotifVendedor.addEventListener('click', function () {
+    const pedidos = document.getElementById('pedidos-vendedor');
+    if (pedidos && pedidos.scrollIntoView) {
+      pedidos.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
 }
