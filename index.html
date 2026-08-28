@@ -9,6 +9,7 @@
 <body>
   <header class="site-header">
     <h1>VerduNica</h1>
+    <p id="store-name" class="store-name">Mercado de Siuna</p>
     <p class="tagline">Agenda digital de verduras y frutas · Siuna</p>
     <div class="session-control">
       <button type="button" id="btn-login" class="btn-secondary">Acceso vendedor</button>
@@ -19,6 +20,7 @@
   <main>
     <section id="catalogo" aria-labelledby="catalogo-title">
       <h2 id="catalogo-title">Catálogo</h2>
+      <input type="search" id="search-input" class="search-input" placeholder="Buscar producto...">
       <div id="catalog-grid" class="catalog-grid"></div>
       <p id="error-log" class="error-log" role="alert"></p>
     </section>
@@ -26,6 +28,11 @@
     <section id="registro" aria-labelledby="registro-title">
       <h2 id="registro-title">Registro de Inventario</h2>
       <form id="product-form" class="product-form">
+        <label>
+          Nombre de tu tienda
+          <input type="text" id="input-store" name="store" placeholder="Ej. Tramo Zeledón">
+        </label>
+
         <label>
           Nombre
           <input type="text" id="input-name" name="name" required>
@@ -42,6 +49,7 @@
             <option value="fruta">fruta</option>
             <option value="verdura">verdura</option>
             <option value="planta/hierba">planta/hierba</option>
+            <option value="raiz/tuberculo">raíz/tubérculo</option>
           </select>
         </label>
 

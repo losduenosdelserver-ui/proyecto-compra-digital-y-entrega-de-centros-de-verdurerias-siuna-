@@ -37,9 +37,18 @@ body {
 }
 
 .tagline {
-  margin-top: 0.4rem;
+  margin-top: 0.35rem;
   opacity: 0.9;
   font-weight: 300;
+  font-size: 0.9rem;
+}
+
+.store-name {
+  margin-top: 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--verde-menta);
+  letter-spacing: 0.5px;
 }
 
 main {
@@ -262,4 +271,37 @@ h2 {
   color: var(--verde-bosque);
   opacity: 0.6;
   font-style: italic;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(82, 183, 136, 0.5);
+  border-radius: 12px;
+  font-size: 1rem;
+  color: var(--verde-bosque);
+  background-color: var(--blanco);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--verde-menta);
+  box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.25);
+}
+
+.card-seller {
+  display: inline-block;
+  width: fit-content;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--verde-bosque);
+  background-color: rgba(82, 183, 136, 0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.card-category + .card-seller {
+  margin-top: 0.35rem;
 }

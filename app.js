@@ -8,7 +8,7 @@
  * Constantes y Claves de Almacenamiento
  * ========================================================================= */
 const STORAGE_KEY = 'verduNica_products';
-const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba'];
+const CATEGORIAS_PERMITIDAS = ['fruta', 'verdura', 'planta/hierba', 'raiz/tuberculo'];
 
 /* Roles de acceso: cliente (usuario), auditor (jurado), admin (vendedor).
  * La seguridad se limita a rutas de acceso locales, sin OAuth ni MFA. */
@@ -25,7 +25,8 @@ const CLAVE_AUDITOR = 'invitado2026';
 /* Estado lúdico de la sesión. Por defecto el rol es 'cliente'. */
 let sesionActual = {
   rol: ROLES.CLIENTE,
-  vendedorId: null
+  vendedorId: null,
+  nombreTienda: ''
 };
 
 /* Datos de ejemplo iniciales para la "pizarra" (blackboard). */
@@ -69,6 +70,11 @@ const adminTableBody = document.getElementById('admin-table-body');
 const productForm = document.getElementById('product-form');
 const registroSection = document.getElementById('registro');
 const thActions = document.getElementById('th-actions');
+const searchInput = document.getElementById('search-input');
+const storeName = document.getElementById('store-name');
+
+/* Estado de búsqueda del catálogo. */
+let busqueda = '';
 
 /* =========================================================================
  * getSessionRole()
@@ -159,6 +165,7 @@ function setRoleUI() {
     thActions.style.display = admin ? '' : 'none';
   }
 
+  aplicarNombreTienda();
   actualizarVistas();
 }
 
@@ -174,6 +181,10 @@ function iniciarSesion() {
   const clave = prompt('Ingrese la clave de acceso (vendedor o invitado):');
   if (clave === CLAVE_ADMIN) {
     setSessionRole(ROLES.ADMIN);
+    const inputStore = document.getElementById('input-store');
+    if (inputStore && inputStore.value.trim()) {
+      sesionActual.nombreTienda = inputStore.value.trim();
+    }
   } else if (clave === CLAVE_AUDITOR) {
     setSessionRole(ROLES.AUDITOR);
     limpiarError();
@@ -193,7 +204,27 @@ function iniciarSesion() {
  * ========================================================================= */
 function cerrarSesion() {
   setSessionRole(ROLES.CLIENTE);
+  sesionActual.nombreTienda = '';
   setRoleUI();
+}
+
+/* =========================================================================
+ * aplicarNombreTienda()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : muestra el nombre de la tienda del vendedor en #store-name,
+ *             o el nombre genérico del mercado si no hay sesión admin.
+ * ========================================================================= */
+function aplicarNombreTienda() {
+  if (!storeName) {
+    return;
+  }
+  if (esAdmin() && sesionActual.nombreTienda) {
+    storeName.textContent = sesionActual.nombreTienda;
+  } else {
+    storeName.textContent = 'Mercado de Siuna';
+  }
 }
 
 /* =========================================================================
@@ -303,6 +334,13 @@ function renderCatalog(products) {
     card.appendChild(price);
     card.appendChild(category);
 
+    if (p.location) {
+      const seller = document.createElement('span');
+      seller.className = 'card-seller';
+      seller.textContent = p.location;
+      card.appendChild(seller);
+    }
+
     if (p.delivery) {
       const badge = document.createElement('span');
       badge.className = 'badge';
@@ -384,8 +422,13 @@ function renderSellerTable(products) {
  * ========================================================================= */
 function actualizarVistas() {
   const products = getProductsFromBlackboard();
-  renderCatalog(products);
   renderSellerTable(products);
+
+  const filtrados = products.filter(function (p) {
+    const nombre = (p.name || '').toLowerCase();
+    return nombre.indexOf(busqueda) !== -1;
+  });
+  renderCatalog(filtrados);
 }
 
 /* =========================================================================
@@ -490,6 +533,14 @@ if (btnLogin) {
 }
 if (btnLogout) {
   btnLogout.addEventListener('click', cerrarSesion);
+}
+
+/* Buscador del catálogo. */
+if (searchInput) {
+  searchInput.addEventListener('input', function () {
+    busqueda = searchInput.value.trim().toLowerCase();
+    actualizarVistas();
+  });
 }
 
 setRoleUI();
