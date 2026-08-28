@@ -22,6 +22,12 @@
       <h2 class="tiendas-title">🏍️ Panel del Repartidor</h2>
       <p id="mandadero-bienvenida" class="empty-note">Bienvenido/a, repartidor.</p>
 
+      <button type="button" id="mandadero-notif" class="notif-banner" hidden>
+        <span class="notif-icon">🔔</span>
+        <span id="mandadero-notif-cont">0</span>
+        <span>nuevo(s) pedido(s) para repartir — recarga la ruta ▼</span>
+      </button>
+
       <div class="kpis">
         <div class="kpi">
           <span class="kpi-label">Completados hoy</span>
@@ -176,6 +182,11 @@
       <h2 id="pedido-modal-title">Hacer pedido</h2>
       <p id="pedido-resumen" class="empty-note"></p>
       <label>
+        Cantidad
+        <input type="number" id="input-pedido-cantidad" class="search-input" min="0.5" step="0.5" value="1" inputmode="decimal" autocomplete="off">
+      </label>
+      <p class="modal-hint">Libras, manojos o unidades. Usa decimales para medios, ej. 1.5.</p>
+      <label>
         Tu nombre
         <input type="text" id="input-pedido-nombre" class="search-input" placeholder="Tu nombre" autocomplete="off">
       </label>
@@ -194,6 +205,8 @@
       <p id="pedido-error" class="error-log" role="alert"></p>
     </div>
   </div>
+
+  <div id="toast-zona" class="toast-zona" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>

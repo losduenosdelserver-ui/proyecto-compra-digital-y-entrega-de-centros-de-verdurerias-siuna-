@@ -484,6 +484,81 @@ h2 {
  * Flujo de pedidos + panel del mandadero
  * ========================================================================= */
 
+/* Pista dentro del modal de pedido (unidades/libra). */
+.modal-hint {
+  font-size: 0.75rem;
+  color: var(--verde-bosque);
+  opacity: 0.7;
+  margin: -0.25rem 0 0.75rem;
+}
+
+/* Botón de notificación de pedidos nuevos (mandadero). */
+.notif-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+  padding: 0.65rem 1rem;
+  background-color: #e6a817;
+  color: #3a2a00;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: center;
+  animation: notif-pulso 1.4s ease-in-out infinite;
+}
+
+.notif-banner[hidden] {
+  display: none;
+}
+
+.notif-icon {
+  font-size: 1.1rem;
+}
+
+.notif-banner:hover {
+  background-color: #ffc94d;
+}
+
+@keyframes notif-pulso {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 168, 23, 0.55); }
+  50% { box-shadow: 0 0 0 8px rgba(230, 168, 23, 0); }
+}
+
+/* Toasts flotantes (aviso de pedido nuevo). */
+.toast-zona {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  width: min(92vw, 420px);
+  pointer-events: none;
+}
+
+.toast {
+  background-color: var(--verde-bosque);
+  color: var(--blanco);
+  padding: 0.8rem 1.1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  box-shadow: var(--sombra);
+  animation: toast-entra 0.3s ease;
+  text-align: center;
+}
+
+@keyframes toast-entra {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Botón de pedido en las tarjetas del catálogo (cliente). */
 .btn-pedido {
   width: 100%;

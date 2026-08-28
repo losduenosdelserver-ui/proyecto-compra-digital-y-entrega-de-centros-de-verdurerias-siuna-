@@ -78,6 +78,10 @@ let tiendaVistaId = null;
 /* Pedido en construcción por el cliente: { tiendaId, items: [], total } */
 let pedidoActual = null;
 
+/* Conteo de pedidos pendientes ya vistos por el mandadero (para detectar
+ * pedidos nuevos y avisar con una notificación). */
+let notifConteoPrevio = -1;
+
 /* =========================================================================
  * TIENDAS_INICIALES()
  * -------------------------------------------------------------------------
@@ -521,6 +525,7 @@ function confirmarAcceso() {
         sesionActual.mandaderoId = matchMandadero.id;
         sesionActual.mandaderoNombre = matchMandadero.nombre;
         tiendaVistaId = null;
+        notifConteoPrevio = -1;
         cerrarModalAcceso();
         limpiarError();
       } else {
@@ -883,20 +888,48 @@ function abrirModalPedido(producto) {
     total: Number(producto.price)
   };
   const modal = document.getElementById('pedido-modal');
-  const resumen = document.getElementById('pedido-resumen');
   const error = document.getElementById('pedido-error');
-  const nombre = document.getElementById('input-pedido-nombre');
+  const cantidad = document.getElementById('input-pedido-cantidad');
+  if (cantidad) {
+    cantidad.value = '1';
+  }
   if (modal) {
     modal.hidden = false;
   }
   if (error) {
     error.textContent = '';
   }
-  if (resumen) {
-    resumen.textContent = producto.name + ' × 1 — C$ ' + Number(producto.price).toFixed(2);
-  }
+  actualizarResumenPedido();
+  const nombre = document.getElementById('input-pedido-nombre');
   if (nombre) {
     nombre.focus();
+  }
+}
+
+/* =========================================================================
+ * actualizarResumenPedido()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno (lee el input de cantidad del modal).
+ * Salida    : void.
+ * Efecto    : recalcula el total del pedido en construcción según la cantidad
+ *             elegida y actualiza el texto de resumen del modal.
+ * ========================================================================= */
+function actualizarResumenPedido() {
+  if (!pedidoActual) {
+    return;
+  }
+  const cantidadInput = document.getElementById('input-pedido-cantidad');
+  const resumen = document.getElementById('pedido-resumen');
+  let cantidad = Number(cantidadInput ? cantidadInput.value : 1);
+  if (!isFinite(cantidad) || cantidad <= 0) {
+    cantidad = 1;
+  }
+  const producto = pedidoActual.items[0];
+  const total = Number(producto.precio) * cantidad;
+  pedidoActual.items[0].cantidad = cantidad;
+  pedidoActual.total = total;
+  if (resumen) {
+    resumen.textContent = producto.nombre + ' × ' + cantidad + ' — C$ ' + total.toFixed(2);
   }
 }
 
@@ -924,6 +957,7 @@ function confirmarPedido() {
   if (!pedidoActual) {
     return;
   }
+  actualizarResumenPedido();
 
   const pedidos = getPedidosDeBlackboard();
   let mandaderoId = null;
@@ -958,6 +992,10 @@ function confirmarPedido() {
   document.getElementById('input-pedido-nombre').value = '';
   document.getElementById('input-pedido-telefono').value = '';
   document.getElementById('input-pedido-direccion').value = '';
+  const cantInput = document.getElementById('input-pedido-cantidad');
+  if (cantInput) {
+    cantInput.value = '1';
+  }
   inyectarError('✅ Pedido registrado. La tienda y el repartidor lo recibirán.');
   actualizarVistas();
 }
@@ -1072,6 +1110,73 @@ function pedidosDelMandadero() {
     const asignado = String(p.mandaderoId) === String(sesionActual.mandaderoId);
     return porAfiliacion || asignado;
   });
+}
+
+/* =========================================================================
+ * renderNotificaciones()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : muestra/oculta el aviso de pedidos nuevos en el panel del
+ *             mandadero y dispara un toast cuando llega un pedido que no se
+ *             había visto antes.
+ * ========================================================================= */
+function renderNotificaciones() {
+  const banner = document.getElementById('mandadero-notif');
+  const cont = document.getElementById('mandadero-notif-cont');
+  if (!banner || !cont) {
+    return;
+  }
+  if (!esMandadero()) {
+    return;
+  }
+  const pendientes = pedidosDelMandadero().filter(function (p) {
+    return p.estado === ESTADOS_PEDIDO.PENDIENTE;
+  });
+  const n = pendientes.length;
+
+  if (n > 0) {
+    banner.hidden = false;
+    cont.textContent = String(n);
+  } else {
+    banner.hidden = true;
+  }
+
+  /* En la primera pasada no avisamos (solo se cuentan pedidos ya existentes). */
+  if (notifConteoPrevio === -1) {
+    notifConteoPrevio = n;
+    return;
+  }
+  if (n > notifConteoPrevio) {
+    const ultimo = pendientes[pendientes.length - 1];
+    const tienda = ultimo ? buscarTiendaPorId(ultimo.tiendaId) : null;
+    const origen = tienda ? tienda.nombre : 'una tienda';
+    mostrarToast('🔔 Nuevo pedido de ' + origen + '! Revisa tu ruta.');
+  }
+  notifConteoPrevio = n;
+}
+
+/* =========================================================================
+ * mostrarToast(mensaje)
+ * -------------------------------------------------------------------------
+ * Entrada   : mensaje (String).
+ * Salida    : void.
+ * Efecto    : muestra una notificación flotante temporal en #toast-zona.
+ * ========================================================================= */
+function mostrarToast(mensaje) {
+  const zona = document.getElementById('toast-zona');
+  if (!zona) {
+    return;
+  }
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = mensaje;
+  zona.appendChild(toast);
+  setTimeout(function () {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  }, 5000);
 }
 
 /* =========================================================================
@@ -1430,11 +1535,12 @@ function actualizarVistas() {
     renderSellerTable([]);
   }
 
-  /* Panel del mandadero: afiliación, ruta activa e historial. */
+  /* Panel del mandadero: afiliación, ruta activa, historial y notificaciones. */
   if (esMandadero()) {
     renderAfiliacion();
     renderRutaActiva();
     renderHistorial();
+    renderNotificaciones();
   }
 
   /* Interfaz limpia: ocultar el buscador de productos y el título cuando la
@@ -1640,6 +1746,30 @@ if (btnConfirmarPedido) {
 if (btnCancelarPedido) {
   btnCancelarPedido.addEventListener('click', cancelarPedido);
 }
+const inputPedidoCantidad = document.getElementById('input-pedido-cantidad');
+if (inputPedidoCantidad) {
+  inputPedidoCantidad.addEventListener('input', actualizarResumenPedido);
+}
+
+/* Botón de notificación del mandadero: baja a la ruta activa. */
+const btnNotif = document.getElementById('mandadero-notif');
+if (btnNotif) {
+  btnNotif.addEventListener('click', function () {
+    const ruta = document.getElementById('ruta-activa');
+    if (ruta && ruta.scrollIntoView) {
+      ruta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+}
+
+/* Refresco automático: cuando otra pestaña/equipo modifica la pizarra
+ * (nuevo pedido del cliente) o por cortesía cada 4 segundos. */
+window.addEventListener('storage', function () {
+  actualizarVistas();
+});
+setInterval(function () {
+  actualizarVistas();
+}, 4000);
 
 setRoleUI();
 actualizarVistas();
