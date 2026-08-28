@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VerduNica · Agenda de Pedidos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>VerduNica</h1>
+    <p class="tagline">Agenda digital de verduras y frutas · Siuna</p>
+  </header>
+
+  <main>
+    <section id="catalogo" aria-labelledby="catalogo-title">
+      <h2 id="catalogo-title">Catálogo</h2>
+      <div id="catalog-grid" class="catalog-grid"></div>
+      <p id="error-log" class="error-log" role="alert"></p>
+    </section>
+
+    <section id="registro" aria-labelledby="registro-title">
+      <h2 id="registro-title">Registro de Inventario</h2>
+      <form id="product-form" class="product-form">
+        <label>
+          Nombre
+          <input type="text" id="input-name" name="name" required>
+        </label>
+
+        <label>
+          Precio (Córdobas)
+          <input type="number" id="input-price" name="price" min="0" step="0.01" required>
+        </label>
+
+        <label>
+          Categoría
+          <select id="input-category" name="category" required>
+            <option value="fruta">fruta</option>
+            <option value="verdura">verdura</option>
+            <option value="planta/hierba">planta/hierba</option>
+          </select>
+        </label>
+
+        <label>
+          Imagen (URL o Base64)
+          <input type="text" id="input-image" name="image">
+        </label>
+
+        <label class="checkbox">
+          <input type="checkbox" id="input-delivery" name="delivery">
+          Disponibilidad de envío
+        </label>
+
+        <label>
+          Ubicación (tramo/vendedor)
+          <input type="text" id="input-location" name="location" required>
+        </label>
+
+        <label>
+          Teléfono (WhatsApp)
+          <input type="tel" id="input-phone" name="phone" required>
+        </label>
+
+        <button type="submit" class="btn-primary">Guardar producto</button>
+      </form>
+    </section>
+
+    <section id="admin" aria-labelledby="admin-title">
+      <h2 id="admin-title">Gestión de Inventario</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Categoría</th>
+            <th>Envío</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="admin-table-body"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
