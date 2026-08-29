@@ -41,6 +41,7 @@
 
       <h3 class="modal-subtitle">Recibir pedidos de</h3>
       <p id="afiliacion-pista" class="afiliacion-pista" hidden>Marca una o más tiendas para recibir sus pedidos y sus notificaciones.</p>
+      <input type="search" id="search-afiliar" class="search-input" placeholder="Busca una tienda">
       <div id="afiliacion-list" class="afiliacion-list"></div>
 
       <h3 class="modal-subtitle">Ruta activa (pedidos del día)</h3>
@@ -155,6 +156,7 @@
       <div id="vendedores-list" class="mandadero-list" hidden></div>
 
       <h3 class="modal-subtitle" id="mandaderos-title">Mandaderos registrados</h3>
+      <input type="search" id="search-mandadero" class="search-input" placeholder="Busca un repartidor">
       <div id="mandadero-list" class="mandadero-list"></div>
 
       <div class="danger-zone" id="zona-vendedor">
@@ -187,6 +189,10 @@
       <label>
         Nombre <span class="modal-hint-inline">(tienda si eres vendedor)</span>
         <input type="text" id="input-reg-nombre" class="search-input" placeholder="Tu nombre o el de tu tienda" autocomplete="off">
+      </label>
+      <label id="campo-reg-ubicacion">
+        Ubicación de la tienda
+        <input type="text" id="input-reg-ubicacion" class="search-input" placeholder="Tramo / vendedor" autocomplete="off">
       </label>
       <label>
         Tipo de cuenta
@@ -234,6 +240,34 @@
         <button type="button" id="btn-cancelar-pedido" class="btn-secondary">Cancelar</button>
       </div>
       <p id="pedido-error" class="error-log" role="alert"></p>
+    </div>
+  </div>
+
+  <!-- Modal de calificación de tiendas (1 a 5 estrellas + comentario). -->
+  <div id="rating-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rating-modal-title">
+      <h2 id="rating-modal-title">Calificar tienda</h2>
+      <p id="rating-tienda-nombre" class="ficha-titulo"></p>
+      <div id="rating-stars" class="rating-stars">
+        <button type="button" class="rating-star" data-valor="1">★</button>
+        <button type="button" class="rating-star" data-valor="2">★</button>
+        <button type="button" class="rating-star" data-valor="3">★</button>
+        <button type="button" class="rating-star" data-valor="4">★</button>
+        <button type="button" class="rating-star" data-valor="5">★</button>
+      </div>
+      <label>
+        Tu nombre
+        <input type="text" id="rating-nombre" class="search-input" placeholder="Tu nombre" autocomplete="off">
+      </label>
+      <label>
+        Comentario
+        <textarea id="rating-comentario" class="search-input" rows="3" placeholder="Cuéntanos tu experiencia..."></textarea>
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="btn-guardar-rating" class="btn-primary">Enviar calificación</button>
+        <button type="button" id="btn-cancelar-rating" class="btn-secondary">Cancelar</button>
+      </div>
+      <p id="rating-error" class="error-log" role="alert"></p>
     </div>
   </div>
 

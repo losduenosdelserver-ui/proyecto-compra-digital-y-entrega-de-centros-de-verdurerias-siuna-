@@ -713,6 +713,54 @@ h2 {
   accent-color: var(--verde-bosque);
 }
 
+/* Invitaciones de tiendas al repartidor. */
+.invitacion {
+  background-color: #fff8e6;
+  border: 1px solid #e6a817;
+  border-left: 5px solid #e6a817;
+  border-radius: 12px;
+  padding: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+.invitacion p {
+  margin: 0 0 0.6rem;
+  font-size: 0.92rem;
+}
+.invitacion-acciones {
+  display: flex;
+  gap: 0.6rem;
+}
+.invitacion-acciones .btn-small {
+  margin-top: 0;
+}
+
+/* Calificación de tiendas. */
+.card-rating {
+  color: #c98a00;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.rating-stars {
+  display: flex;
+  gap: 0.3rem;
+  margin: 0.5rem 0 1rem;
+}
+.rating-star {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #cfcfcf;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.rating-star.activa {
+  color: #f5b301;
+}
+#rating-comentario {
+  font-family: inherit;
+  resize: vertical;
+}
+
 /* Ruta activa del mandadero. */
 .ruta-activa {
   display: flex;

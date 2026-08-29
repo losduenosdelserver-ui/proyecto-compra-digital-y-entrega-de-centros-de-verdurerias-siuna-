@@ -76,6 +76,16 @@ function setSessionRole(rol) {
 /* Estado de búsqueda de tiendas (pantalla inicial del cliente). */
 let busquedaTienda = '';
 
+/* Buscadores internos: el vendedor filtra repartidores; el mandadero filtra
+ * tiendas para afiliarse. */
+let busquedaMandadero = '';
+let busquedaAfiliar = '';
+
+/* Calificación de tiendas: tienda en proceso de calificación y estrellas
+ * seleccionadas por el cliente. */
+let tiendaCalificarId = null;
+let ratingSeleccion = 0;
+
 /* Detalle de la tienda elegida por el cliente para poder ver su catálogo. */
 let tiendaVistaId = null;
 
@@ -185,7 +195,8 @@ function getTiendasDeBlackboard() {
     const lista = Array.isArray(data) ? data : [];
     return lista.map(function (t) {
       return Object.assign({}, t, {
-        productos: Array.isArray(t.productos) ? t.productos : []
+        productos: Array.isArray(t.productos) ? t.productos : [],
+        calificaciones: Array.isArray(t.calificaciones) ? t.calificaciones : []
       });
     });
   } catch (e) {
@@ -224,7 +235,8 @@ function getMandaderosDeBlackboard() {
     const lista = Array.isArray(data) ? data : [];
     return lista.map(function (m) {
       return Object.assign({}, m, {
-        tiendasAfiliadas: Array.isArray(m.tiendasAfiliadas) ? m.tiendasAfiliadas : []
+        tiendasAfiliadas: Array.isArray(m.tiendasAfiliadas) ? m.tiendasAfiliadas : [],
+        invitaciones: Array.isArray(m.invitaciones) ? m.invitaciones : []
       });
     });
   } catch (e) {
@@ -722,6 +734,7 @@ function registrarCuenta() {
   const nombre = document.getElementById('input-reg-nombre').value.trim();
   const tipo = document.getElementById('input-reg-tipo').value;
   const clave = document.getElementById('input-reg-clave').value.trim();
+  const ubicacion = document.getElementById('input-reg-ubicacion').value.trim();
 
   if (!nombre || !clave) {
     if (modalError) {
@@ -731,7 +744,6 @@ function registrarCuenta() {
   }
 
   /* Evitar claves duplicadas: una misma clave no puede existir en otra tienda
-   * (vendedor) ni en otro mandadero, pues el login autentica por clave. */
   const tiendasExistentes = getTiendasDeBlackboard();
   const mandaderosExistentes = getMandaderosDeBlackboard();
   const claveEnUso = tiendasExistentes.some(function (t) {
@@ -761,7 +773,9 @@ function registrarCuenta() {
       nombre: nombre,
       clave: clave,
       rol: ROLES.ADMIN,
-      productos: []
+      ubicacion: ubicacion,
+      productos: [],
+      calificaciones: []
     });
     setTiendasOnBlackboard(tiendasExistentes);
     if (modalError) {
@@ -781,7 +795,8 @@ function registrarCuenta() {
       id: 'm' + Date.now(),
       nombre: nombre,
       clave: clave,
-      tiendasAfiliadas: []
+      tiendasAfiliadas: [],
+      invitaciones: []
     });
     setMandaderosOnBlackboard(mandaderosExistentes);
     if (modalError) {
@@ -812,12 +827,14 @@ function renderMandaderos() {
     return;
   }
   cont.innerHTML = '';
-  const mandaderos = getMandaderosDeBlackboard();
+  const mandaderos = getMandaderosDeBlackboard().filter(function (m) {
+    return busquedaMandadero === '' || (m.nombre || '').toLowerCase().indexOf(busquedaMandadero) !== -1;
+  });
 
   if (mandaderos.length === 0) {
     const note = document.createElement('p');
     note.className = 'empty-note';
-    note.textContent = 'No hay mandaderos registrados.';
+    note.textContent = busquedaMandadero ? 'No se encontró ningún repartidor.' : 'No hay mandaderos registrados.';
     cont.appendChild(note);
     return;
   }
@@ -847,13 +864,15 @@ function renderMandaderos() {
 
     item.appendChild(nombre);
 
-    /* El vendedor puede afiliar al repartidor a SU tienda directamente;
-     * el god admin (auditor) solo lee la lista. */
+    /* El vendedor puede invitar al repartidor a SU tienda; el auditador (god
+     * admin) solo lee la lista. Muestra si ya está afiliado o pendiente. */
     if (esAdmin() && sesionActual.tiendaId) {
       const miTiendaId = sesionActual.tiendaId;
       const afin = (m.tiendasAfiliadas || []).indexOf(miTiendaId) !== -1;
-      btnAfiliacion.textContent = afin ? 'Quitar de mi tienda' : 'Afiliar a mi tienda';
+      const pendiente = (m.invitaciones || []).indexOf(miTiendaId) !== -1;
+      btnAfiliacion.textContent = afin ? 'Quitar de mi tienda' : (pendiente ? 'Invitación enviada' : 'Invitar a mi tienda');
       btnAfiliacion.classList.toggle('btn-afiliado', afin);
+      btnAfiliacion.disabled = pendiente;
       item.appendChild(btnAfiliacion);
     }
 
@@ -867,15 +886,17 @@ function renderMandaderos() {
  * -------------------------------------------------------------------------
  * Entrada   : mid (String) id del mandadero.
  * Salida    : void.
- * Efecto    : agrega/retira la tienda del vendedor en sesión a las tiendas
- *             afiliadas de ese mandadero. Es el complemento de la afiliación
- *             que el mandadero hace desde su propio panel.
+ * Efecto    : envía una invitación de la tienda del vendedor al repartidor.
+ *             El repartidor la acepta o la rechaza desde su panel. La
+ *             afiliación efectiva solo ocurre al aceptarla (así el repartidor
+ *             da su consentimiento, igual que la afiliación inversa).
  * ========================================================================= */
 function toggleAfiliacionDesdeVendedor(mid) {
   if (!esAdmin() || !sesionActual.tiendaId) {
     return;
   }
   const tiendaId = sesionActual.tiendaId;
+  const tienda = buscarTiendaPorId(tiendaId);
   const mandaderos = getMandaderosDeBlackboard();
   const idx = mandaderos.findIndex(function (m) {
     return m.id === mid;
@@ -883,20 +904,33 @@ function toggleAfiliacionDesdeVendedor(mid) {
   if (idx === -1) {
     return;
   }
-  const lista = mandaderos[idx].tiendasAfiliadas.slice();
-  const pos = lista.indexOf(tiendaId);
-  let accion = '';
-  if (pos === -1) {
-    lista.push(tiendaId);
-    accion = 'afiliado a esta tienda';
-  } else {
-    lista.splice(pos, 1);
-    accion = 'quitado de esta tienda';
+  const m = mandaderos[idx];
+  const afin = (m.tiendasAfiliadas || []).indexOf(tiendaId) !== -1;
+
+  if (afin) {
+    if (!confirm('¿Quitar a ' + (m.nombre || '') + ' de tu tienda?')) {
+      return;
+    }
+    const lista = m.tiendasAfiliadas.slice().filter(function (id) {
+      return id !== tiendaId;
+    });
+    m.tiendasAfiliadas = lista;
+    setMandaderosOnBlackboard(mandaderos);
+    renderMandaderos();
+    mostrarToast('Repartidor quitado de tu tienda.');
+    return;
   }
-  mandaderos[idx].tiendasAfiliadas = lista;
+
+  /* Enviar invitación si no está pendiente ni afiliado. */
+  const pendiente = (m.invitaciones || []).indexOf(tiendaId) !== -1;
+  if (pendiente) {
+    return;
+  }
+  m.invitaciones = (m.invitaciones || []).slice();
+  m.invitaciones.push(tiendaId);
   setMandaderosOnBlackboard(mandaderos);
   renderMandaderos();
-  mostrarToast('Repartidor ' + (mandaderos[idx].nombre || '') + ' ' + accion + '.');
+  mostrarToast('Invitación enviada a ' + (m.nombre || '') + '.');
 }
 
 /* =========================================================================
@@ -1150,6 +1184,26 @@ function limpiarUsuariosDePrueba() {
  * Salida    : void.
  * Efecto    : re-render las tarjetas de tiendas en #tienda-grid.
  * ========================================================================= */
+function promedioEstrellas(t) {
+  const calif = t.calificaciones || [];
+  if (calif.length === 0) {
+    return 0;
+  }
+  const suma = calif.reduce(function (acc, r) {
+    return acc + Number(r.estrellas || 0);
+  }, 0);
+  return suma / calif.length;
+}
+
+function estrellasTexto(t) {
+  const prom = promedioEstrellas(t);
+  const n = (t.calificaciones || []).length;
+  if (n === 0) {
+    return 'Sin calificaciones';
+  }
+  return '★ ' + prom.toFixed(1) + ' (' + n + ')';
+}
+
 function renderTiendas(lista) {
   if (!tiendaGrid) {
     return;
@@ -1165,6 +1219,11 @@ function renderTiendas(lista) {
     tiendaGrid.appendChild(note);
     return;
   }
+
+  /* Las tiendas mejor calificadas aparecen primero en los resultados. */
+  lista = lista.slice().sort(function (a, b) {
+    return promedioEstrellas(b) - promedioEstrellas(a);
+  });
 
   if (lista.length === 0) {
     const note = document.createElement('p');
@@ -1182,6 +1241,10 @@ function renderTiendas(lista) {
     nombre.className = 'card-name';
     nombre.textContent = t.nombre || 'Sin nombre';
 
+    const rating = document.createElement('p');
+    rating.className = 'card-rating';
+    rating.textContent = estrellasTexto(t);
+
     const count = document.createElement('p');
     count.className = 'card-seller';
     count.textContent = (t.productos ? t.productos.length : 0) + ' producto(s)';
@@ -1194,11 +1257,102 @@ function renderTiendas(lista) {
       elegirTienda(t.id);
     });
 
+    const btnCalificar = document.createElement('button');
+    btnCalificar.type = 'button';
+    btnCalificar.className = 'btn-secondary btn-small';
+    btnCalificar.textContent = '★ Calificar';
+    btnCalificar.addEventListener('click', function () {
+      abrirModalCalificacion(t.id);
+    });
+
     card.appendChild(nombre);
+    card.appendChild(rating);
     card.appendChild(count);
     card.appendChild(btn);
+    card.appendChild(btnCalificar);
     tiendaGrid.appendChild(card);
   });
+}
+
+/* =========================================================================
+ * abrirModalCalificacion(tiendaId) / pintarEstrellas(valor) / guardarCalificacion()
+ * -------------------------------------------------------------------------
+ * Efecto    : el cliente califica de 1 a 5 estrellas más un comentario a la
+ *             tienda/vendedor. Se guarda en calificaciones de la tienda y
+ *             mejora su posición en el buscador (promedio de estrellas).
+ * ========================================================================= */
+function pintarEstrellas(valor) {
+  const cont = document.getElementById('rating-stars');
+  if (!cont) {
+    return;
+  }
+  [].slice.call(cont.querySelectorAll('.rating-star')).forEach(function (s) {
+    s.classList.toggle('activa', Number(s.getAttribute('data-valor')) <= valor);
+  });
+}
+
+function abrirModalCalificacion(tiendaId) {
+  tiendaCalificarId = tiendaId;
+  ratingSeleccion = 0;
+  const t = buscarTiendaPorId(tiendaId);
+  const nombreTienda = document.getElementById('rating-tienda-nombre');
+  const error = document.getElementById('rating-error');
+  const inputNombre = document.getElementById('rating-nombre');
+  const inputComentario = document.getElementById('rating-comentario');
+  if (nombreTienda) {
+    nombreTienda.textContent = t ? t.nombre : '';
+  }
+  if (error) {
+    error.textContent = '';
+  }
+  if (inputNombre) {
+    inputNombre.value = '';
+  }
+  if (inputComentario) {
+    inputComentario.value = '';
+  }
+  pintarEstrellas(0);
+  const modal = document.getElementById('rating-modal');
+  if (modal) {
+    modal.hidden = false;
+  }
+}
+
+function guardarCalificacion() {
+  if (!tiendaCalificarId) {
+    return;
+  }
+  const error = document.getElementById('rating-error');
+  if (ratingSeleccion < 1) {
+    if (error) {
+      error.textContent = 'Elige de 1 a 5 estrellas para calificar.';
+    }
+    return;
+  }
+  const tiendas = getTiendasDeBlackboard();
+  const t = tiendas.find(function (ti) {
+    return ti.id === tiendaCalificarId;
+  });
+  if (!t) {
+    return;
+  }
+  const inputNombre = document.getElementById('rating-nombre');
+  const inputComentario = document.getElementById('rating-comentario');
+  t.calificaciones = (t.calificaciones || []).slice();
+  t.calificaciones.push({
+    nombre: inputNombre ? inputNombre.value.trim() : '',
+    estrellas: ratingSeleccion,
+    comentario: inputComentario ? inputComentario.value.trim() : '',
+    fecha: new Date().toISOString()
+  });
+  setTiendasOnBlackboard(tiendas);
+
+  const modal = document.getElementById('rating-modal');
+  if (modal) {
+    modal.hidden = true;
+  }
+  mostrarToast('¡Gracias por calificar "' + (t.nombre || '') + '"!');
+  actualizarVistas();
 }
 
 /* =========================================================================
@@ -1428,6 +1582,10 @@ function renderAfiliacion() {
     return;
   }
   cont.innerHTML = '';
+
+  /* Invitaciones recibidas: la tienda quiere que te unas a su servicio. */
+  renderInvitaciones();
+
   const tiendas = getTiendasDeBlackboard();
   const mandadero = buscarMandaderoPorId(sesionActual.mandaderoId);
 
@@ -1438,15 +1596,20 @@ function renderAfiliacion() {
     pista.hidden = afiliadaAlguna;
   }
 
-  if (tiendas.length === 0) {
+  const minimo = String(busquedaAfiliar).toLowerCase();
+  const filtradas = tiendas.filter(function (t) {
+    return minimo === '' || (t.nombre || '').toLowerCase().indexOf(minimo) !== -1;
+  });
+
+  if (filtradas.length === 0) {
     const note = document.createElement('p');
     note.className = 'empty-note';
-    note.textContent = 'No hay tiendas registradas.';
+    note.textContent = minimo ? 'No se encontró ninguna tienda.' : 'No hay tiendas registradas.';
     cont.appendChild(note);
     return;
   }
 
-  tiendas.forEach(function (t) {
+  filtradas.forEach(function (t) {
     const label = document.createElement('label');
     label.className = 'afiliacion-item';
 
@@ -1458,12 +1621,102 @@ function renderAfiliacion() {
     });
 
     const span = document.createElement('span');
-    span.textContent = t.nombre;
+    span.textContent = (t.nombre || '') + (t.ubicacion ? ' · ' + t.ubicacion : '');
+    span.addEventListener('click', function () {
+      check.checked = !check.checked;
+      toggleAfiliacion(t.id, check.checked);
+    });
 
     label.appendChild(check);
     label.appendChild(span);
     cont.appendChild(label);
   });
+}
+
+/* =========================================================================
+ * renderInvitaciones()
+ * -------------------------------------------------------------------------
+ * Entrada   : ninguno.
+ * Salida    : void.
+ * Efecto    : muestra las invitaciones que el mandadero en sesión ha recibido
+ *             (tiendas que lo quieren contratar), con botones Aceptar/Rechazar.
+ * ========================================================================= */
+function renderInvitaciones() {
+  const cont = document.getElementById('afiliacion-list');
+  const mandadero = buscarMandaderoPorId(sesionActual.mandaderoId);
+  if (!cont || !mandadero) {
+    return;
+  }
+  const invitaciones = (mandadero.invitaciones || []).slice();
+  invitaciones.forEach(function (tiendaId) {
+    const t = buscarTiendaPorId(tiendaId);
+    if (!t) {
+      return;
+    }
+    const ficha = document.createElement('div');
+    ficha.className = 'invitacion';
+    const texto = document.createElement('p');
+    texto.textContent = 'La tienda "' + t.nombre + '" quiere que te unas a su servicio delivery. ' +
+      (t.ubicacion ? 'Ubicación: ' + t.ubicacion + '. ' : '') + '¿Aceptas?';
+    const acciones = document.createElement('div');
+    acciones.className = 'invitacion-acciones';
+    const btnSi = document.createElement('button');
+    btnSi.type = 'button';
+    btnSi.className = 'btn-primary btn-small';
+    btnSi.textContent = 'Aceptar';
+    btnSi.addEventListener('click', function () {
+      responderInvitacion(tiendaId, true);
+    });
+    const btnNo = document.createElement('button');
+    btnNo.type = 'button';
+    btnNo.className = 'btn-danger btn-small';
+    btnNo.textContent = 'Rechazar';
+    btnNo.addEventListener('click', function () {
+      responderInvitacion(tiendaId, false);
+    });
+    acciones.appendChild(btnSi);
+    acciones.appendChild(btnNo);
+    ficha.appendChild(texto);
+    ficha.appendChild(acciones);
+    cont.appendChild(ficha);
+  });
+}
+
+/* =========================================================================
+ * responderInvitacion(tiendaId, aceptar)
+ * -------------------------------------------------------------------------
+ * Entrada   : tiendaId (String) y aceptar (Boolean).
+ * Salida    : void.
+ * Efecto    : si acepta, agrega la tienda a tiendasAfiliadas; en ambos casos
+ *             quita la invitación pendiente y refresca el panel.
+ * ========================================================================= */
+function responderInvitacion(tiendaId, aceptar) {
+  if (!esMandadero() || !sesionActual.mandaderoId) {
+    return;
+  }
+  const mandaderos = getMandaderosDeBlackboard();
+  const idx = mandaderos.findIndex(function (m) {
+    return m.id === sesionActual.mandaderoId;
+  });
+  if (idx === -1) {
+    return;
+  }
+  const m = mandaderos[idx];
+  if (aceptar) {
+    const lista = (m.tiendasAfiliadas || []).slice();
+    if (lista.indexOf(tiendaId) === -1) {
+      lista.push(tiendaId);
+    }
+    m.tiendasAfiliadas = lista;
+  }
+  m.invitaciones = (m.invitaciones || []).filter(function (id) {
+    return id !== tiendaId;
+  });
+  setMandaderosOnBlackboard(mandaderos);
+  const t = buscarTiendaPorId(tiendaId);
+  mostrarToast(aceptar ? ('Aceptaste la invitación de "' + (t ? t.nombre : '') + '".') : ('Rechazaste la invitación de "' + (t ? t.nombre : '') + '".'));
+  renderAfiliacion();
+  renderRutaActiva();
 }
 
 /* =========================================================================
@@ -2278,6 +2531,59 @@ if (searchTienda) {
 if (searchInput) {
   searchInput.addEventListener('input', function () {
     actualizarVistas();
+  });
+}
+
+/* Buscador de repartidores (vendedor) y de tiendas para afiliarse (mandadero). */
+const searchMandadero = document.getElementById('search-mandadero');
+if (searchMandadero) {
+  searchMandadero.addEventListener('input', function () {
+    busquedaMandadero = searchMandadero.value.trim().toLowerCase();
+    renderMandaderos();
+  });
+}
+const searchAfiliar = document.getElementById('search-afiliar');
+if (searchAfiliar) {
+  searchAfiliar.addEventListener('input', function () {
+    busquedaAfiliar = searchAfiliar.value.trim().toLowerCase();
+    renderAfiliacion();
+  });
+}
+
+/* Campo de ubicación del registro: solo aplica al tipo vendedor. */
+const campoRegUbicacion = document.getElementById('campo-reg-ubicacion');
+const inputRegTipo = document.getElementById('input-reg-tipo');
+function sincronizarCampoUbicacion() {
+  if (campoRegUbicacion) {
+    campoRegUbicacion.style.display = inputRegTipo && inputRegTipo.value === 'vendedor' ? '' : 'none';
+  }
+}
+if (inputRegTipo) {
+  inputRegTipo.addEventListener('change', sincronizarCampoUbicacion);
+}
+sincronizarCampoUbicacion();
+
+/* Modal de calificación de la tienda. */
+const ratingStars = document.getElementById('rating-stars');
+if (ratingStars) {
+  [].slice.call(ratingStars.querySelectorAll('.rating-star')).forEach(function (s) {
+    s.addEventListener('click', function () {
+      ratingSeleccion = Number(s.getAttribute('data-valor'));
+      pintarEstrellas(ratingSeleccion);
+    });
+  });
+}
+const btnGuardarRating = document.getElementById('btn-guardar-rating');
+const btnCancelarRating = document.getElementById('btn-cancelar-rating');
+if (btnGuardarRating) {
+  btnGuardarRating.addEventListener('click', guardarCalificacion);
+}
+if (btnCancelarRating) {
+  btnCancelarRating.addEventListener('click', function () {
+    const modal = document.getElementById('rating-modal');
+    if (modal) {
+      modal.hidden = true;
+    }
   });
 }
 
