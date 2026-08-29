@@ -744,6 +744,7 @@ function registrarCuenta() {
   }
 
   /* Evitar claves duplicadas: una misma clave no puede existir en otra tienda
+   * (vendedor) ni en otro mandadero, pues el login autentica por clave. */
   const tiendasExistentes = getTiendasDeBlackboard();
   const mandaderosExistentes = getMandaderosDeBlackboard();
   const claveEnUso = tiendasExistentes.some(function (t) {
